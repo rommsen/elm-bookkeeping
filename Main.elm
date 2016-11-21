@@ -6,6 +6,20 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Json
+import Material
+import Material.Scheme
+import Material.Button as Button
+import Material.Chip as Chip
+import Material.Options exposing (css)
+import Material.Icon as Icon
+import Material.Layout as Layout
+import Material.Color as Color
+import Material.Table as Table
+import Material.Textfield as Textfield
+import Material.Options as Options
+import Material.Typography as Typo
+import Material.Grid as Grid
+import List.Extra exposing (find)
 
 
 -- MODEL
@@ -19,6 +33,13 @@ type alias Member =
     , payments : List Payment
     , balance : Float
     }
+
+
+type MemberPane
+    = MemberPaneShowNone
+    | MemberPaneShowDetails Member
+    | MemberPaneAddMonth
+    | MemberPaneAddMember
 
 
 type alias Month =
@@ -42,19 +63,26 @@ type alias LineItem =
 type alias LineItemInProcess =
     { id : Maybe Int
     , name : String
-    , amount : String
+    , amount : Float
     }
+
+
+type alias Mdl =
+    Material.Model
 
 
 type alias Model =
     { members : List Member
-    , memberId : Maybe Int
+    , member : Maybe Member
     , memberName : String
     , memberPayment : Float
     , month : Month
     , lineItems : List LineItem
     , lineItem : LineItemInProcess
     , totalBalance : Float
+    , memberPane : MemberPane
+    , selectedTab : Int
+    , mdl : Material.Model
     }
 
 
@@ -65,7 +93,7 @@ months =
 
 emptyLineItem : LineItemInProcess
 emptyLineItem =
-    LineItemInProcess Nothing "" ""
+    LineItemInProcess Nothing "" 0
 
 
 initialModel : Model
@@ -74,13 +102,16 @@ initialModel =
         [ { id = 1, name = "Roman Sachse", active = True, months = [], payments = [], balance = 0 }
         , { id = 2, name = "Lena Sachse", active = False, months = [], payments = [], balance = 0 }
         ]
-    , memberId = Nothing
+    , member = Nothing
     , memberName = ""
     , month = Month Date.Jan 2016 7.5
     , memberPayment = 0
     , lineItems = []
     , lineItem = emptyLineItem
     , totalBalance = 0
+    , memberPane = MemberPaneShowNone
+    , selectedTab = 0
+    , mdl = Material.model
     }
 
 
@@ -141,13 +172,11 @@ monthDecoder =
 
 
 type Msg
-    = EditMember Member
-    | SaveMember
+    = SaveMember
     | CancelMember
     | InputMemberName String
     | ToggleMemberIsActive Member
     | InputMemberPaymentAmount String
-    | CancelMemberPayment
     | SaveMemberPayment
     | SelectMonth Date.Month
     | InputMonthYear String
@@ -160,19 +189,19 @@ type Msg
     | InputLineItemAmount String
     | SaveLineItem
     | DeleteLineItem LineItem
+    | SelectTab Int
+    | ChangeMemberPane MemberPane
+    | Mdl (Material.Msg Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EditMember member ->
-            { model | memberId = Just member.id, memberName = member.name } ! []
-
         InputMemberName name ->
             { model | memberName = name } ! []
 
         CancelMember ->
-            { model | memberId = Nothing, memberName = "", memberPayment = 0 } ! []
+            { model | member = Nothing, memberName = "", memberPayment = 0, memberPane = MemberPaneShowNone } ! []
 
         SaveMember ->
             if (String.isEmpty model.memberName) then
@@ -191,15 +220,12 @@ update msg model =
                 { model | members = List.map map model.members } ! []
 
         SaveMemberPayment ->
-            case model.memberId of
-                Just id ->
-                    addMemberPayment model id ! []
+            case model.member of
+                Just member ->
+                    addMemberPayment model member ! []
 
                 Nothing ->
                     model ! []
-
-        CancelMemberPayment ->
-            { model | memberId = Nothing, memberName = "", memberPayment = 0 } ! []
 
         InputMemberPaymentAmount amount ->
             case ( String.toFloat amount, model ) of
@@ -244,7 +270,7 @@ update msg model =
                 { model | members = List.map map model.members } ! []
 
         SelectLineItem { id, name, amount } ->
-            { model | lineItem = LineItemInProcess (Just id) name (toString amount) } ! []
+            { model | lineItem = LineItemInProcess (Just id) name amount } ! []
 
         CancelLineItem ->
             { model | lineItem = emptyLineItem } ! []
@@ -257,14 +283,15 @@ update msg model =
                 { model | lineItem = { lineItem | name = name } } ! []
 
         InputLineItemAmount amount ->
-            let
-                { lineItem } =
-                    model
-            in
-                { model | lineItem = { lineItem | amount = amount } } ! []
+            case ( String.toFloat amount, model ) of
+                ( Ok val, { lineItem } ) ->
+                    { model | lineItem = { lineItem | amount = val } } ! []
+
+                ( Err bla, _ ) ->
+                    model ! []
 
         SaveLineItem ->
-            if (String.isEmpty model.lineItem.name) || (String.isEmpty model.lineItem.amount) then
+            if (String.isEmpty model.lineItem.name) then
                 model ! []
             else
                 saveLineItem model ! []
@@ -275,6 +302,20 @@ update msg model =
                 , totalBalance = model.totalBalance - lineItem.amount
             }
                 ! []
+
+        SelectTab num ->
+            { model | selectedTab = num } ! []
+
+        ChangeMemberPane memberPane ->
+            case memberPane of
+                MemberPaneShowDetails member ->
+                    { model | memberPane = memberPane, member = Just member, memberName = member.name } ! []
+
+                _ ->
+                    { model | memberPane = memberPane, member = Nothing, memberName = "" } ! []
+
+        Mdl msg_ ->
+            Material.update msg_ model
 
 
 addMonthToActiveMembers : Month -> Member -> Member
@@ -302,31 +343,27 @@ monthEquals a b =
 
 saveMember : Model -> Model
 saveMember model =
-    case model.memberId of
-        Just id ->
-            editMember model id
+    case model.member of
+        Just member ->
+            editMember model member
 
         Nothing ->
             addMember model
 
 
-editMember : Model -> Int -> Model
-editMember model id =
+editMember : Model -> Member -> Model
+editMember model member =
     let
-        map member =
-            if member.id == id then
-                { member | name = model.memberName }
+        map member_ =
+            if member_.id == member.id then
+                { member_ | name = model.memberName }
             else
-                member
-
-        newMembers =
-            List.map map model.members
+                member_
     in
         { model
-            | members = newMembers
-            , memberId = Nothing
+            | members = List.map map model.members
+            , member = Nothing
             , memberName = ""
-            , memberPayment = 0
         }
 
 
@@ -348,25 +385,20 @@ addMember model =
         }
 
 
-addMemberPayment : Model -> Int -> Model
-addMemberPayment model id =
+addMemberPayment : Model -> Member -> Model
+addMemberPayment model member =
     let
-        map member =
-            if member.id == id then
-                { member
+        map member_ =
+            if member_.id == member.id then
+                { member_
                     | payments = Payment model.memberPayment :: member.payments
                     , balance = member.balance + model.memberPayment
                 }
             else
-                member
-
-        newMembers =
-            List.map map model.members
+                member_
     in
         { model
-            | members = newMembers
-            , memberId = Nothing
-            , memberName = ""
+            | members = List.map map model.members
             , memberPayment = 0
             , totalBalance = model.totalBalance + model.memberPayment
         }
@@ -386,7 +418,7 @@ editLineItem : Model -> Int -> Model
 editLineItem model id =
     let
         newAmount =
-            Result.withDefault 0 (String.toFloat model.lineItem.amount)
+            model.lineItem.amount
 
         oldAmount =
             List.foldl
@@ -407,12 +439,9 @@ editLineItem model id =
                 }
             else
                 lineItem
-
-        newLineItems =
-            List.map map model.lineItems
     in
         { model
-            | lineItems = newLineItems
+            | lineItems = List.map map model.lineItems
             , lineItem = emptyLineItem
             , totalBalance = model.totalBalance - oldAmount + newAmount
         }
@@ -424,7 +453,7 @@ addLineItem model =
         newLineItem =
             { id = List.length model.lineItems
             , name = model.lineItem.name
-            , amount = Result.withDefault 0 (String.toFloat model.lineItem.amount)
+            , amount = model.lineItem.amount
             }
     in
         { model
@@ -452,80 +481,293 @@ subscriptions model =
 -- VIEW
 
 
-memberListView : List Member -> Html Msg
-memberListView members =
-    List.map memberItemView members
-        |> ul []
+view : Model -> Html Msg
+view model =
+    Material.Scheme.topWithScheme Color.Teal Color.LightGreen <|
+        Layout.render Mdl
+            model.mdl
+            [ Layout.fixedHeader
+            , Layout.fixedTabs
+            , Layout.onSelectTab SelectTab
+            , Layout.selectedTab model.selectedTab
+            ]
+            { header = viewHeader model
+            , drawer = []
+            , tabs = ( [ text "Members", text "LineItems" ], [ Color.background (Color.color Color.Teal Color.S400) ] )
+            , main = [ viewBody model ]
+            }
 
 
-memberItemView : Member -> Html Msg
-memberItemView member =
-    let
-        btnText =
-            if member.active then
-                "Deactivate"
-            else
-                "Activate"
-    in
-        li []
+viewHeader : Model -> List (Html Msg)
+viewHeader model =
+    [ Layout.row
+        []
+        [ Layout.title [] [ text "Bookkeeping" ]
+        , Layout.spacer
+        , Layout.title []
             [ span
                 []
-                [ text <| member.name ++ " | Balance: " ++ toString member.balance ++ " | " ]
-            , button
-                [ onClick <| EditMember member ]
-                [ text "Select" ]
-            , button
-                [ onClick <| ToggleMemberIsActive member ]
-                [ text btnText ]
-            , monthListView member
+                [ text <| "Total: " ++ toString model.totalBalance ]
+            ]
+        ]
+    ]
+
+
+viewBody : Model -> Html Msg
+viewBody model =
+    case model.selectedTab of
+        0 ->
+            membersView model
+
+        1 ->
+            lineItemsView model
+
+        _ ->
+            text "404"
+
+
+membersView : Model -> Html Msg
+membersView model =
+    Grid.grid []
+        [ Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell
+            [ Grid.size Grid.All 4 ]
+            [ memberActionsView model
+            , memberListView model
+            ]
+        , Grid.cell
+            [ Grid.size Grid.All 4 ]
+            [ memberPaneView model
+            ]
+        , Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell
+            [ Grid.size Grid.All 8 ]
+            [ hr [] []
+            , text (toString model)
+            ]
+        , Grid.cell [ Grid.size Grid.All 2 ] []
+        ]
+
+
+lineItemsView : Model -> Html Msg
+lineItemsView model =
+    Grid.grid []
+        [ Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell
+            [ Grid.size Grid.All 4 ]
+            [ lineItemListView model ]
+        , Grid.cell
+            [ Grid.size Grid.All 4 ]
+            [ div []
+                [ Options.styled p
+                    [ Typo.display1 ]
+                    [ text "Line Item" ]
+                , lineItemForm model
+                ]
+            ]
+        , Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell
+            [ Grid.size Grid.All 8 ]
+            [ hr [] []
+            , text (toString model)
+            ]
+        , Grid.cell [ Grid.size Grid.All 2 ] []
+        ]
+
+
+memberActionsView : Model -> Html Msg
+memberActionsView model =
+    Grid.grid []
+        [ Grid.cell [ Grid.size Grid.All 4 ]
+            [ Button.render Mdl
+                [ 1 ]
+                model.mdl
+                [ Button.raised
+                , Button.colored
+                , Button.ripple
+                , Button.onClick <| ChangeMemberPane MemberPaneAddMember
+                ]
+                [ text "Add Member" ]
+            ]
+        , Grid.cell [ Grid.size Grid.All 4 ]
+            [ Button.render Mdl
+                [ 2 ]
+                model.mdl
+                [ Button.raised
+                , Button.colored
+                , Button.ripple
+                , Button.onClick <| ChangeMemberPane MemberPaneAddMonth
+                ]
+                [ text "Add Month" ]
+            ]
+        , Grid.cell [ Grid.size Grid.All 4 ] []
+        ]
+
+
+memberListView : Model -> Html Msg
+memberListView model =
+    Table.table []
+        [ Table.thead []
+            [ Table.tr []
+                [ Table.th [] [ text "Name" ]
+                , Table.th [] [ text "Balance" ]
+                , Table.th [] [ text "" ]
+                ]
+            ]
+        , Table.tbody [] <| List.map (memberItemView model) model.members
+        ]
+
+
+memberItemView : Model -> Member -> Html Msg
+memberItemView model member =
+    let
+        activeIcon =
+            if member.active then
+                "done"
+            else
+                "not_interested"
+    in
+        Table.tr []
+            [ Table.td [] [ text member.name ]
+            , Table.td [ Table.numeric ] [ text <| toString member.balance ++ " €" ]
+            , Table.td []
+                [ Button.render Mdl
+                    [ 3 ]
+                    model.mdl
+                    [ Button.minifab
+                    , Button.colored
+                    , Button.ripple
+                    , Button.onClick <| ChangeMemberPane <| MemberPaneShowDetails member
+                    ]
+                    [ Icon.i "open_in_new" ]
+                , Button.render Mdl
+                    [ 4 ]
+                    model.mdl
+                    [ Button.minifab
+                    , Button.colored
+                    , Button.ripple
+                    , Button.onClick <| ToggleMemberIsActive member
+                    ]
+                    [ Icon.i activeIcon ]
+                ]
             ]
 
 
-memberForm : Model -> Html Msg
-memberForm model =
-    Html.form [ onSubmit SaveMember ]
-        [ input
-            [ type_ "text"
-            , placeholder "Add/Edit Member..."
-            , onInput InputMemberName
-            , value model.memberName
+memberPaneView : Model -> Html Msg
+memberPaneView model =
+    case model.memberPane of
+        MemberPaneShowNone ->
+            div [] [ text "" ]
+
+        MemberPaneShowDetails member ->
+            div []
+                [ memberDetailsHeaderView model "Member"
+                , memberForm model
+                , paymentForm model
+                , memberMonthListView member
+                ]
+
+        MemberPaneAddMonth ->
+            div []
+                [ memberDetailsHeaderView model "Add month"
+                , monthForm model
+                ]
+
+        MemberPaneAddMember ->
+            div []
+                [ memberDetailsHeaderView model "Add member"
+                , memberForm model
+                ]
+
+
+memberDetailsHeaderView : Model -> String -> Html Msg
+memberDetailsHeaderView model header =
+    Options.styled p
+        [ Typo.display1 ]
+        [ text header
+        , Button.render
+            Mdl
+            [ 5 ]
+            model.mdl
+            [ Button.colored
+            , Button.onClick CancelMember
             ]
-            []
-        , button [ type_ "submit" ] [ text "Save" ]
-        , button [ type_ "button", onClick CancelMember ] [ text "Cancel" ]
+            [ text "Cancel" ]
+        ]
+
+
+memberMonthListView : Member -> Html Msg
+memberMonthListView member =
+    Table.table []
+        [ Table.thead []
+            [ Table.tr []
+                [ Table.th [] [ text "Name" ]
+                , Table.th [] [ text "Amount" ]
+                , Table.th [] [ text "" ]
+                ]
+            ]
+        , Table.tbody [] <| List.map (memberMonthItemView member) member.months
+        ]
+
+
+memberMonthItemView : Member -> Month -> Html Msg
+memberMonthItemView member month =
+    Table.tr []
+        [ Table.td [] [ text <| toString month.month ++ " " ++ toString month.year ]
+        , Table.td [ Table.numeric ] [ text <| toString month.amount ++ " €" ]
+        , Table.td []
+            [ button
+                [ onClick <| DeleteMonthFromMember month member ]
+                [ text "Delete" ]
+            ]
         ]
 
 
 paymentForm : Model -> Html Msg
 paymentForm model =
     Html.form [ onSubmit SaveMemberPayment ]
-        [ input
-            [ type_ "text"
-            , placeholder "Payment..."
-            , onInput InputMemberPaymentAmount
-            , value <| toString model.memberPayment
+        [ Textfield.render Mdl
+            [ 6 ]
+            model.mdl
+            [ Textfield.label "Payment"
+            , Textfield.floatingLabel
+            , Textfield.text_
+            , Textfield.onInput InputMemberPaymentAmount
+            , Textfield.value <| toString model.memberPayment
             ]
-            []
-        , button [ type_ "submit" ] [ text "Add payment" ]
-        , button [ type_ "button", onClick CancelMemberPayment ] [ text "Cancel" ]
+        , Button.render
+            Mdl
+            [ 7 ]
+            model.mdl
+            [ Button.colored
+            , Button.type_ "submit"
+            ]
+            [ text "Add payment" ]
         ]
 
 
-monthListView : Member -> Html Msg
-monthListView member =
-    List.map (monthItemView member) member.months
-        |> ul []
-
-
-monthItemView : Member -> Month -> Html Msg
-monthItemView member month =
-    li []
-        [ span
-            []
-            [ text <| toString month.month ++ " " ++ toString month.year ++ " (" ++ toString month.amount ++ ")" ]
-        , button
-            [ onClick <| DeleteMonthFromMember month member ]
-            [ text "Delete" ]
+memberForm : Model -> Html Msg
+memberForm model =
+    Html.form [ onSubmit SaveMember ]
+        [ Textfield.render Mdl
+            [ 8 ]
+            model.mdl
+            [ Textfield.label "Name"
+            , Textfield.floatingLabel
+            , Textfield.text_
+            , Textfield.onInput InputMemberName
+            , Textfield.value model.memberName
+            ]
+        , Button.render
+            Mdl
+            [ 9 ]
+            model.mdl
+            [ Button.colored
+            , Button.type_ "submit"
+            ]
+            [ text "Save" ]
         ]
 
 
@@ -534,89 +776,118 @@ monthOption month =
     option [ value (toString month) ] [ text (toString month) ]
 
 
-monthForm : Month -> Html Msg
-monthForm month =
+monthForm : Model -> Html Msg
+monthForm model =
     Html.form [ onSubmit AddMonth ]
-        [ select [ on "change" (Json.map SelectMonth monthDecoder) ] (List.map monthOption months)
-        , input
-            [ type_ "text"
-            , placeholder "Year"
-            , onInput InputMonthYear
-            , value <| toString month.year
+        [ select [ on "change" (Json.map SelectMonth monthDecoder) ]
+            (List.map monthOption months)
+        , br [] []
+        , Textfield.render Mdl
+            [ 10 ]
+            model.mdl
+            [ Textfield.label "Year"
+            , Textfield.floatingLabel
+            , Textfield.text_
+            , Textfield.onInput InputMonthYear
+            , Textfield.value <| toString model.month.year
             ]
-            []
-        , input
-            [ type_ "text"
-            , placeholder "Amount"
-            , onInput InputMonthAmount
-            , value <| toString month.amount
+        , br [] []
+        , Textfield.render Mdl
+            [ 11 ]
+            model.mdl
+            [ Textfield.label "Amount"
+            , Textfield.floatingLabel
+            , Textfield.text_
+            , Textfield.onInput InputMonthAmount
+            , Textfield.value <| toString model.month.amount
             ]
-            []
-        , button [ type_ "submit" ] [ text "Add month to active members" ]
+        , br [] []
+        , Button.render
+            Mdl
+            [ 11 ]
+            model.mdl
+            [ Button.colored
+            , Button.ripple
+            , Button.type_ "submit"
+            ]
+            [ text "Add month to active members" ]
         ]
 
 
-lineItemListView : List LineItem -> Html Msg
-lineItemListView members =
-    List.map lineItemItemView members
-        |> ul []
+lineItemListView : Model -> Html Msg
+lineItemListView model =
+    Table.table []
+        [ Table.thead []
+            [ Table.tr []
+                [ Table.th [] [ text "Name" ]
+                , Table.th [] [ text "Amount" ]
+                , Table.th [] [ text "" ]
+                ]
+            ]
+        , Table.tbody [] <| List.map (lineItemView model) model.lineItems
+        ]
 
 
-lineItemItemView : LineItem -> Html Msg
-lineItemItemView lineItem =
-    li []
-        [ span
-            []
-            [ text <| lineItem.name ++ " | Amount: " ++ toString lineItem.amount ++ " | " ]
-        , button
-            [ onClick <| SelectLineItem lineItem ]
-            [ text "Select" ]
-        , button
-            [ onClick <| DeleteLineItem lineItem ]
-            [ text "Delete" ]
+lineItemView : Model -> LineItem -> Html Msg
+lineItemView model lineItem =
+    Table.tr []
+        [ Table.td [] [ text <| lineItem.name ]
+        , Table.td [ Table.numeric ] [ text <| toString lineItem.amount ++ " €" ]
+        , Table.td []
+            [ Button.render Mdl
+                [ 13 ]
+                model.mdl
+                [ Button.minifab
+                , Button.colored
+                , Button.ripple
+                , Button.onClick <| SelectLineItem lineItem
+                ]
+                [ Icon.i "open_in_new" ]
+            , Button.render Mdl
+                [ 14 ]
+                model.mdl
+                [ Button.minifab
+                , Button.colored
+                , Button.ripple
+                , Button.onClick <| DeleteLineItem lineItem
+                ]
+                [ Icon.i "delete" ]
+            ]
         ]
 
 
 lineItemForm : Model -> Html Msg
 lineItemForm model =
     Html.form [ onSubmit SaveLineItem ]
-        [ input
-            [ type_ "text"
-            , placeholder "Name..."
-            , onInput InputLineItemName
-            , value model.lineItem.name
+        [ Textfield.render Mdl
+            [ 15 ]
+            model.mdl
+            [ Textfield.label "Name"
+            , Textfield.floatingLabel
+            , Textfield.text_
+            , Textfield.onInput InputLineItemName
+            , Textfield.value model.lineItem.name
             ]
-            []
-        , input
-            [ type_ "text"
-            , placeholder "Amount..."
-            , onInput InputLineItemAmount
-            , value model.lineItem.amount
+        , br [] []
+        , Textfield.render Mdl
+            [ 16 ]
+            model.mdl
+            [ Textfield.label "Amount"
+            , Textfield.floatingLabel
+            , Textfield.text_
+            , Textfield.onInput InputLineItemAmount
+            , Textfield.value <| toString model.lineItem.amount
             ]
-            []
-        , button [ type_ "submit" ] [ text "Save" ]
-        , button [ type_ "button", onClick CancelLineItem ] [ text "Cancel" ]
-        ]
-
-
-view : Model -> Html Msg
-view model =
-    div []
-        [ h2 [] [ text <| "Total: " ++ toString model.totalBalance ]
-        , hr [] []
-        , h2 [] [ text "Members" ]
-        , memberListView model.members
-        , memberForm model
-        , paymentForm model
-        , hr [] []
-        , h2 [] [ text "Month" ]
-        , monthForm model.month
-        , hr [] []
-        , h2 [] [ text "LineItems" ]
-        , lineItemListView model.lineItems
-        , lineItemForm model
-        , hr [] []
-        , text (toString model)
+        , br [] []
+        , Button.render
+            Mdl
+            [ 17 ]
+            model.mdl
+            [ Button.colored
+            , Button.ripple
+            , Button.type_ "submit"
+            ]
+            [ text "Add line item" ]
         ]
 
 
