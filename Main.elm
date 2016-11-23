@@ -9,7 +9,6 @@ import Json.Decode as Json
 import Material
 import Material.Scheme
 import Material.Button as Button
-import Material.Chip as Chip
 import Material.Options exposing (css)
 import Material.Icon as Icon
 import Material.Layout as Layout
@@ -19,7 +18,6 @@ import Material.Textfield as Textfield
 import Material.Options as Options
 import Material.Typography as Typo
 import Material.Grid as Grid
-import List.Extra exposing (find)
 
 
 -- MODEL
