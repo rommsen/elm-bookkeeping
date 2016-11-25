@@ -290,13 +290,16 @@ update msg model =
             case JD.decodeValue memberDecoder value of
                 Ok newMember ->
                     let
+                        _ =
+                            Debug.log "MemberUpdated" newMember
+
                         map member =
                             if member.id == newMember.id then
                                 newMember
                             else
                                 member
                     in
-                        { model | members = List.map map model.members } ! []
+                        { model | members = List.map map model.members, member = Just newMember, memberName = newMember.name } ! []
 
                 Err err ->
                     model ! []
@@ -715,29 +718,33 @@ memberItemView model member =
 
 memberPaneView : Model -> Html Msg
 memberPaneView model =
-    case model.memberPane of
-        MemberPaneShowNone ->
-            div [] [ text "" ]
+    div []
+        (case model.memberPane of
+            MemberPaneShowNone ->
+                []
 
-        MemberPaneShowDetails member ->
-            div []
-                [ memberDetailsHeaderView model "Member"
-                , memberForm model
-                , paymentForm model
-                , memberMonthListView member
-                ]
+            MemberPaneShowDetails _ ->
+                case model.member of
+                    Just member ->
+                        [ memberDetailsHeaderView model "Member"
+                        , memberForm model
+                        , paymentForm model
+                        , memberMonthListView member
+                        ]
 
-        MemberPaneAddMonth ->
-            div []
+                    Nothing ->
+                        []
+
+            MemberPaneAddMonth ->
                 [ memberDetailsHeaderView model "Add month"
                 , monthForm model
                 ]
 
-        MemberPaneAddMember ->
-            div []
+            MemberPaneAddMember ->
                 [ memberDetailsHeaderView model "Add member"
                 , memberForm model
                 ]
+        )
 
 
 memberDetailsHeaderView : Model -> String -> Html Msg
