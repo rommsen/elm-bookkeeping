@@ -11,7 +11,7 @@
     var app = Elm.Main.fullscreen();
 
     app.ports.addMemberPort.subscribe(function (member) {
-        addMember(JSON.parse(member)).then(function (response) {
+        addMember(member).then(function (response) {
             console.log('member added', response)
 //            app.ports.customerSaved.send(response.key);
         }, function (err) {

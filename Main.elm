@@ -8,6 +8,7 @@ import Html.Events exposing (..)
 import Json.Decode as JD
 import Json.Encode as JE
 import Json.Decode.Pipeline
+import Task
 import Material
 import Material.Scheme
 import Material.Button as Button
@@ -50,7 +51,9 @@ type alias Month =
 
 
 type alias Payment =
-    { amount : Float }
+    { amount : Float
+    , added : Date.Date
+    }
 
 
 type alias LineItem =
@@ -120,6 +123,22 @@ initialModel =
 init : ( Model, Cmd Msg )
 init =
     ( initialModel, Cmd.none )
+
+
+dateDecoder : JD.Decoder Date.Date
+dateDecoder =
+    JD.string
+        |> JD.andThen dateDecoderHelper
+
+
+dateDecoderHelper : String -> JD.Decoder Date.Date
+dateDecoderHelper string =
+    case Date.fromString string of
+        Ok date ->
+            JD.succeed date
+
+        Err err ->
+            JD.fail err
 
 
 monthSelectDecoder : JD.Decoder Date.Month
@@ -193,7 +212,7 @@ memberDecoder =
         |> Json.Decode.Pipeline.required "name" (JD.string)
         |> Json.Decode.Pipeline.required "active" (JD.bool)
         |> Json.Decode.Pipeline.optional "months" (JD.list monthTypeDecoder) []
-        |> Json.Decode.Pipeline.optional "payments" (JD.list decodePayment) []
+        |> Json.Decode.Pipeline.optional "payments" (JD.list paymentDecoder) []
         |> Json.Decode.Pipeline.required "balance" (JD.float)
 
 
@@ -205,10 +224,11 @@ monthTypeDecoder =
         |> Json.Decode.Pipeline.required "amount" (JD.float)
 
 
-decodePayment : JD.Decoder Payment
-decodePayment =
+paymentDecoder : JD.Decoder Payment
+paymentDecoder =
     Json.Decode.Pipeline.decode Payment
         |> Json.Decode.Pipeline.required "amount" (JD.float)
+        |> Json.Decode.Pipeline.required "added" (dateDecoder)
 
 
 monthEncoder : Month -> JE.Value
@@ -223,7 +243,9 @@ monthEncoder month =
 paymentEncoder : Payment -> JE.Value
 paymentEncoder payment =
     JE.object
-        [ ( "amount", JE.float payment.amount ) ]
+        [ ( "amount", JE.float <| payment.amount )
+        , ( "added", JE.string <| toString payment.added )
+        ]
 
 
 memberEncoder : Member -> JE.Value
@@ -240,13 +262,13 @@ memberEncoder member =
 
 type Msg
     = SaveMemberName
-    | CancelMember
     | MemberAdded JD.Value
     | MemberUpdated JD.Value
     | InputMemberName String
     | ToggleMemberIsActive Member
     | InputMemberPaymentAmount String
-    | SaveMemberPayment
+    | CreateMemberPayment
+    | SaveMemberPayment Member Payment
     | SelectMonth Date.Month
     | InputMonthYear String
     | InputMonthAmount String
@@ -268,9 +290,6 @@ update msg model =
     case msg of
         InputMemberName name ->
             { model | memberName = name } ! []
-
-        CancelMember ->
-            { model | member = Nothing, memberName = "", memberPayment = 0, memberPane = MemberPaneShowNone } ! []
 
         SaveMemberName ->
             if (String.isEmpty model.memberName) then
@@ -307,20 +326,27 @@ update msg model =
         ToggleMemberIsActive member ->
             ( model, updateMemberCmd { member | active = not <| member.active } )
 
-        SaveMemberPayment ->
+        CreateMemberPayment ->
             case model.member of
                 Just member ->
-                    let
-                        newMember =
-                            { member
-                                | payments = Payment model.memberPayment :: member.payments
-                                , balance = member.balance + model.memberPayment
-                            }
-                    in
-                        ( { model | memberPayment = 0 }, updateMemberCmd newMember )
+                    ( { model | memberPayment = 0 }
+                    , Date.now
+                        |> Task.map (\date -> Payment model.memberPayment date)
+                        |> Task.perform (SaveMemberPayment member)
+                    )
 
                 Nothing ->
                     model ! []
+
+        SaveMemberPayment member payment ->
+            let
+                newMember =
+                    { member
+                        | payments = payment :: member.payments
+                        , balance = member.balance + payment.amount
+                    }
+            in
+                ( model, updateMemberCmd newMember )
 
         InputMemberPaymentAmount amount ->
             case ( String.toFloat amount, model ) of
@@ -729,6 +755,7 @@ memberPaneView model =
                         [ memberDetailsHeaderView model "Member"
                         , memberForm model
                         , paymentForm model
+                        , memberPaymentListView member
                         , memberMonthListView member
                         ]
 
@@ -757,10 +784,41 @@ memberDetailsHeaderView model header =
             [ 5 ]
             model.mdl
             [ Button.colored
-            , Button.onClick CancelMember
+            , Button.onClick <| ChangeMemberPane MemberPaneShowNone
             ]
             [ text "Cancel" ]
         ]
+
+
+memberPaymentListView : Member -> Html Msg
+memberPaymentListView member =
+    Table.table []
+        [ Table.thead []
+            [ Table.tr []
+                [ Table.th [] [ text "Date" ]
+                , Table.th [] [ text "Amount" ]
+                ]
+            ]
+        , Table.tbody [] <| List.map (memberPaymentItemView member) member.payments
+        ]
+
+
+memberPaymentItemView : Member -> Payment -> Html Msg
+memberPaymentItemView member payment =
+    let
+        day =
+            Date.day payment.added
+
+        month =
+            Date.month payment.added
+
+        year =
+            Date.year payment.added
+    in
+        Table.tr []
+            [ Table.td [] [ text <| toString day ++ "." ++ toString month ++ "." ++ toString year ]
+            , Table.td [ Table.numeric ] [ text <| toString payment.amount ++ " €" ]
+            ]
 
 
 memberMonthListView : Member -> Html Msg
@@ -792,7 +850,7 @@ memberMonthItemView member month =
 
 paymentForm : Model -> Html Msg
 paymentForm model =
-    Html.form [ onSubmit SaveMemberPayment ]
+    Html.form [ onSubmit CreateMemberPayment ]
         [ Textfield.render Mdl
             [ 6 ]
             model.mdl
