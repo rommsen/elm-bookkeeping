@@ -1,12 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <script src="main.js"></script>
+    <meta charset="utf-8">
+    <script src="https://www.gstatic.com/firebasejs/3.6.1/firebase.js"></script>
+    <script src="main.js"></script>
+    <script src="appfb.js"></script>
 </head>
 <body>
 <script>
-  Elm.Main.fullscreen();
+    var app = Elm.Main.fullscreen();
+
+    app.ports.addMemberPort.subscribe(function (member) {
+        addCustomer(JSON.parse(member)).then(function (response) {
+            console.log(response)
+//            app.ports.customerSaved.send(response.key);
+        }, function (err) {
+            console.log("error:", err);
+        });
+    });
+
+
+    var listener = memberListener();
+    listener.on("child_added", function (data) {
+        var member = Object.assign({}, data.val(), { id: data.key });
+        app.ports.memberAdded.send(member);
+    });
+
+
 </script>
 </body>
 </html>

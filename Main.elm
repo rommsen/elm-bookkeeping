@@ -1,11 +1,13 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import List
 import Date
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Json.Decode as Json
+import Json.Decode as JD
+import Json.Encode as JE
+import Json.Decode.Pipeline
 import Material
 import Material.Scheme
 import Material.Button as Button
@@ -24,7 +26,7 @@ import Material.Grid as Grid
 
 
 type alias Member =
-    { id : Int
+    { id : String
     , name : String
     , active : Bool
     , months : List Month
@@ -94,12 +96,18 @@ emptyLineItem =
     LineItemInProcess Nothing "" 0
 
 
+memberWithName : String -> Member
+memberWithName name =
+    Member "" name True [] [] 0
+
+
 initialModel : Model
 initialModel =
     { members =
-        [ { id = 1, name = "Roman Sachse", active = True, months = [], payments = [], balance = 0 }
-        , { id = 2, name = "Lena Sachse", active = False, months = [], payments = [], balance = 0 }
-        ]
+        []
+        --        [ { id = Just "1", name = "Roman Sachse", active = True, months = [], payments = [], balance = 0 }
+        --        , { id = 2, name = "Lena Sachse", active = False, months = [], payments = [], balance = 0 }
+        --        ]
     , member = Nothing
     , memberName = ""
     , month = Month Date.Jan 2016 7.5
@@ -118,62 +126,129 @@ init =
     ( initialModel, Cmd.none )
 
 
-monthDecoder : Json.Decoder Date.Month
-monthDecoder =
+monthSelectDecoder : JD.Decoder Date.Month
+monthSelectDecoder =
     targetValue
-        |> Json.andThen
-            (\string ->
-                case string of
-                    "Jan" ->
-                        Json.succeed Date.Jan
+        |> JD.andThen monthDecoder
 
-                    "Feb" ->
-                        Json.succeed Date.Feb
 
-                    "Mar" ->
-                        Json.succeed Date.Mar
-
-                    "Apr" ->
-                        Json.succeed Date.Apr
-
-                    "May" ->
-                        Json.succeed Date.May
-
-                    "Jun" ->
-                        Json.succeed Date.Jun
-
-                    "Jul" ->
-                        Json.succeed Date.Jul
-
-                    "Aug" ->
-                        Json.succeed Date.Aug
-
-                    "Sep" ->
-                        Json.succeed Date.Sep
-
-                    "Oct" ->
-                        Json.succeed Date.Oct
-
-                    "Nov" ->
-                        Json.succeed Date.Nov
-
-                    "Dec" ->
-                        Json.succeed Date.Dec
-
-                    _ ->
-                        Json.fail "month not available"
-            )
+monthStringDecoder : JD.Decoder Date.Month
+monthStringDecoder =
+    JD.string
+        |> JD.andThen monthDecoder
 
 
 
--- UPDATE
+{--
+andThen : (a -> Decoder b)                                              -> Decoder a         -> Decoder b
+           funktion von dem decodeteten wert zu einem Decoder von Typ b -> den Decoder für a -> einen Decoder von typ b
+
+ Decoder String = Ein Decoder, der weiß wie er einen String Decodiert
+-}
+
+
+monthDecoder : String -> JD.Decoder Date.Month
+monthDecoder string =
+    case string of
+        "Jan" ->
+            JD.succeed Date.Jan
+
+        "Feb" ->
+            JD.succeed Date.Feb
+
+        "Mar" ->
+            JD.succeed Date.Mar
+
+        "Apr" ->
+            JD.succeed Date.Apr
+
+        "May" ->
+            JD.succeed Date.May
+
+        "Jun" ->
+            JD.succeed Date.Jun
+
+        "Jul" ->
+            JD.succeed Date.Jul
+
+        "Aug" ->
+            JD.succeed Date.Aug
+
+        "Sep" ->
+            JD.succeed Date.Sep
+
+        "Oct" ->
+            JD.succeed Date.Oct
+
+        "Nov" ->
+            JD.succeed Date.Nov
+
+        "Dec" ->
+            JD.succeed Date.Dec
+
+        _ ->
+            JD.fail "month not available"
+
+
+memberDecoder : JD.Decoder Member
+memberDecoder =
+    Json.Decode.Pipeline.decode Member
+        |> Json.Decode.Pipeline.required "id" (JD.string)
+        |> Json.Decode.Pipeline.required "name" (JD.string)
+        |> Json.Decode.Pipeline.required "active" (JD.bool)
+        |> Json.Decode.Pipeline.optional "months" (JD.list monthTypeDecoder) []
+        |> Json.Decode.Pipeline.optional "payments" (JD.list decodePayment) []
+        |> Json.Decode.Pipeline.required "balance" (JD.float)
+
+
+monthTypeDecoder : JD.Decoder Month
+monthTypeDecoder =
+    Json.Decode.Pipeline.decode Month
+        |> Json.Decode.Pipeline.required "month" (monthStringDecoder)
+        |> Json.Decode.Pipeline.required "year" (JD.int)
+        |> Json.Decode.Pipeline.required "amount" (JD.float)
+
+
+decodePayment : JD.Decoder Payment
+decodePayment =
+    Json.Decode.Pipeline.decode Payment
+        |> Json.Decode.Pipeline.required "amount" (JD.float)
+
+
+monthEncoder : Month -> JE.Value
+monthEncoder month =
+    JE.object
+        [ ( "month", JE.string <| toString month.month )
+        , ( "year", JE.int month.year )
+        , ( "amount", JE.float month.amount )
+        ]
+
+
+paymentEncoder : Payment -> JE.Value
+paymentEncoder payment =
+    JE.object
+        [ ( "amount", JE.float payment.amount ) ]
+
+
+memberEncoder : Member -> JE.Value
+memberEncoder member =
+    JE.object
+        [ ( "id", JE.string <| member.id )
+        , ( "name", JE.string <| member.name )
+        , ( "active", JE.bool <| member.active )
+        , ( "months", JE.list <| List.map monthEncoder <| member.months )
+        , ( "payments", JE.list <| List.map paymentEncoder <| member.payments )
+        , ( "balance", JE.float <| member.balance )
+        ]
 
 
 type Msg
     = SaveMember
     | CancelMember
+    | MemberAdded JD.Value
     | InputMemberName String
     | ToggleMemberIsActive Member
+    | AddMemberPort Member
     | InputMemberPaymentAmount String
     | SaveMemberPayment
     | SelectMonth Date.Month
@@ -205,7 +280,15 @@ update msg model =
             if (String.isEmpty model.memberName) then
                 model ! []
             else
-                saveMember model ! []
+                saveMember model
+
+        MemberAdded value ->
+            case JD.decodeValue memberDecoder value of
+                Ok member ->
+                    { model | members = member :: model.members } ! []
+
+                Err err ->
+                    model ! []
 
         ToggleMemberIsActive member ->
             let
@@ -304,6 +387,42 @@ update msg model =
         SelectTab num ->
             { model | selectedTab = num } ! []
 
+        AddMemberPort member ->
+            let
+                memberJson =
+                    """
+                    {"id":1,"name":"Roman Sachse","active":true,"months":[{"month":"Feb","year":2016,"amount":7.5},{"month":"Jan","year":2016,"amount":7.5}],"payments":[{"amount":6}],"balance":-9}
+                    """
+
+                encodeMonth month =
+                    JE.object
+                        [ ( "month", JE.string <| toString month.month )
+                        , ( "year", JE.int month.year )
+                        , ( "amount", JE.float month.amount )
+                        ]
+
+                encodePayment payment =
+                    JE.object
+                        [ ( "amount", JE.float payment.amount ) ]
+
+                json =
+                    JE.object
+                        [ ( "id", JE.string <| member.id )
+                        , ( "name", JE.string <| member.name )
+                        , ( "active", JE.bool <| member.active )
+                        , ( "months", JE.list <| List.map encodeMonth <| member.months )
+                        , ( "payments", JE.list <| List.map encodePayment <| member.payments )
+                        , ( "balance", JE.float <| member.balance )
+                        ]
+
+                _ =
+                    Debug.log "encode" <| JE.encode 0 json
+
+                _ =
+                    Debug.log "decode" <| JD.decodeString memberDecoder memberJson
+            in
+                ( model, addMemberPort <| JE.encode 0 json )
+
         ChangeMemberPane memberPane ->
             case memberPane of
                 MemberPaneShowDetails member ->
@@ -339,14 +458,14 @@ monthEquals a b =
     ( a.month, a.year ) == ( b.month, b.year )
 
 
-saveMember : Model -> Model
+saveMember : Model -> ( Model, Cmd Msg )
 saveMember model =
     case model.member of
         Just member ->
-            editMember model member
+            editMember model member ! []
 
         Nothing ->
-            addMember model
+            ( model, addMemberPort <| JE.encode 0 <| memberEncoder <| memberWithName model.memberName )
 
 
 editMember : Model -> Member -> Model
@@ -365,22 +484,8 @@ editMember model member =
         }
 
 
-addMember : Model -> Model
-addMember model =
-    let
-        newMember =
-            { id = List.length model.members
-            , name = model.memberName
-            , active = True
-            , months = []
-            , payments = []
-            , balance = 0
-            }
-    in
-        { model
-            | members = newMember :: model.members
-            , memberName = ""
-        }
+
+--mem
 
 
 addMemberPayment : Model -> Member -> Model
@@ -472,7 +577,15 @@ deleteLineItem lineItem list =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ memberAdded MemberAdded
+        ]
+
+
+port addMemberPort : String -> Cmd msg
+
+
+port memberAdded : (JD.Value -> msg) -> Sub msg
 
 
 
@@ -649,6 +762,15 @@ memberItemView model member =
                     , Button.onClick <| ToggleMemberIsActive member
                     ]
                     [ Icon.i activeIcon ]
+                , Button.render Mdl
+                    [ 4 ]
+                    model.mdl
+                    [ Button.minifab
+                    , Button.colored
+                    , Button.ripple
+                    , Button.onClick <| AddMemberPort member
+                    ]
+                    [ Icon.i activeIcon ]
                 ]
             ]
 
@@ -777,7 +899,7 @@ monthOption month =
 monthForm : Model -> Html Msg
 monthForm model =
     Html.form [ onSubmit AddMonth ]
-        [ select [ on "change" (Json.map SelectMonth monthDecoder) ]
+        [ select [ on "change" (JD.map SelectMonth monthSelectDecoder) ]
             (List.map monthOption months)
         , br [] []
         , Textfield.render Mdl
