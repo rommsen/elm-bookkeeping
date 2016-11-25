@@ -103,11 +103,7 @@ memberWithName name =
 
 initialModel : Model
 initialModel =
-    { members =
-        []
-        --        [ { id = Just "1", name = "Roman Sachse", active = True, months = [], payments = [], balance = 0 }
-        --        , { id = 2, name = "Lena Sachse", active = False, months = [], payments = [], balance = 0 }
-        --        ]
+    { members = []
     , member = Nothing
     , memberName = ""
     , month = Month Date.Jan 2016 7.5
@@ -246,9 +242,9 @@ type Msg
     = SaveMember
     | CancelMember
     | MemberAdded JD.Value
+    | MemberUpdated JD.Value
     | InputMemberName String
     | ToggleMemberIsActive Member
-    | AddMemberPort Member
     | InputMemberPaymentAmount String
     | SaveMemberPayment
     | SelectMonth Date.Month
@@ -290,15 +286,23 @@ update msg model =
                 Err err ->
                     model ! []
 
+        MemberUpdated value ->
+            case JD.decodeValue memberDecoder value of
+                Ok newMember ->
+                    let
+                        map member =
+                            if member.id == newMember.id then
+                                newMember
+                            else
+                                member
+                    in
+                        { model | members = List.map map model.members } ! []
+
+                Err err ->
+                    model ! []
+
         ToggleMemberIsActive member ->
-            let
-                map member_ =
-                    if member_.id == member.id then
-                        { member_ | active = not <| member_.active }
-                    else
-                        member_
-            in
-                { model | members = List.map map model.members } ! []
+            ( model, updateMemberPort <| memberEncoder { member | active = not <| member.active } )
 
         SaveMemberPayment ->
             case model.member of
@@ -387,42 +391,6 @@ update msg model =
         SelectTab num ->
             { model | selectedTab = num } ! []
 
-        AddMemberPort member ->
-            let
-                memberJson =
-                    """
-                    {"id":1,"name":"Roman Sachse","active":true,"months":[{"month":"Feb","year":2016,"amount":7.5},{"month":"Jan","year":2016,"amount":7.5}],"payments":[{"amount":6}],"balance":-9}
-                    """
-
-                encodeMonth month =
-                    JE.object
-                        [ ( "month", JE.string <| toString month.month )
-                        , ( "year", JE.int month.year )
-                        , ( "amount", JE.float month.amount )
-                        ]
-
-                encodePayment payment =
-                    JE.object
-                        [ ( "amount", JE.float payment.amount ) ]
-
-                json =
-                    JE.object
-                        [ ( "id", JE.string <| member.id )
-                        , ( "name", JE.string <| member.name )
-                        , ( "active", JE.bool <| member.active )
-                        , ( "months", JE.list <| List.map encodeMonth <| member.months )
-                        , ( "payments", JE.list <| List.map encodePayment <| member.payments )
-                        , ( "balance", JE.float <| member.balance )
-                        ]
-
-                _ =
-                    Debug.log "encode" <| JE.encode 0 json
-
-                _ =
-                    Debug.log "decode" <| JD.decodeString memberDecoder memberJson
-            in
-                ( model, addMemberPort <| JE.encode 0 json )
-
         ChangeMemberPane memberPane ->
             case memberPane of
                 MemberPaneShowDetails member ->
@@ -462,7 +430,7 @@ saveMember : Model -> ( Model, Cmd Msg )
 saveMember model =
     case model.member of
         Just member ->
-            editMember model member ! []
+            ( model, updateMemberPort <| memberEncoder { member | name = model.memberName } )
 
         Nothing ->
             ( model, addMemberPort <| JE.encode 0 <| memberEncoder <| memberWithName model.memberName )
@@ -579,13 +547,20 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ memberAdded MemberAdded
+        , memberUpdated MemberUpdated
         ]
 
 
 port addMemberPort : String -> Cmd msg
 
 
+port updateMemberPort : JD.Value -> Cmd msg
+
+
 port memberAdded : (JD.Value -> msg) -> Sub msg
+
+
+port memberUpdated : (JD.Value -> msg) -> Sub msg
 
 
 
@@ -760,15 +735,6 @@ memberItemView model member =
                     , Button.colored
                     , Button.ripple
                     , Button.onClick <| ToggleMemberIsActive member
-                    ]
-                    [ Icon.i activeIcon ]
-                , Button.render Mdl
-                    [ 4 ]
-                    model.mdl
-                    [ Button.minifab
-                    , Button.colored
-                    , Button.ripple
-                    , Button.onClick <| AddMemberPort member
                     ]
                     [ Icon.i activeIcon ]
                 ]
