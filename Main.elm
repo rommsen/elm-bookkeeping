@@ -239,7 +239,7 @@ memberEncoder member =
 
 
 type Msg
-    = SaveMember
+    = SaveMemberName
     | CancelMember
     | MemberAdded JD.Value
     | MemberUpdated JD.Value
@@ -250,7 +250,7 @@ type Msg
     | SelectMonth Date.Month
     | InputMonthYear String
     | InputMonthAmount String
-    | AddMonth
+    | AddMonthToActiveMembers
     | DeleteMonthFromMember Month Member
     | SelectLineItem LineItem
     | CancelLineItem
@@ -272,7 +272,7 @@ update msg model =
         CancelMember ->
             { model | member = Nothing, memberName = "", memberPayment = 0, memberPane = MemberPaneShowNone } ! []
 
-        SaveMember ->
+        SaveMemberName ->
             if (String.isEmpty model.memberName) then
                 model ! []
             else
@@ -302,12 +302,19 @@ update msg model =
                     model ! []
 
         ToggleMemberIsActive member ->
-            ( model, updateMemberPort <| memberEncoder { member | active = not <| member.active } )
+            ( model, updateMemberCmd { member | active = not <| member.active } )
 
         SaveMemberPayment ->
             case model.member of
                 Just member ->
-                    addMemberPayment model member ! []
+                    let
+                        newMember =
+                            { member
+                                | payments = Payment model.memberPayment :: member.payments
+                                , balance = member.balance + model.memberPayment
+                            }
+                    in
+                        ( { model | memberPayment = 0 }, updateMemberCmd newMember )
 
                 Nothing ->
                     model ! []
@@ -341,18 +348,25 @@ update msg model =
                 ( Err bla, _ ) ->
                     model ! []
 
-        AddMonth ->
-            { model | members = List.map (addMonthToActiveMembers model.month) model.members } ! []
+        AddMonthToActiveMembers ->
+            let
+                cmds =
+                    model.members
+                        |> List.filter (\m -> m.active == True && not (memberHasMonth m model.month))
+                        |> List.map (\m -> { m | months = model.month :: m.months, balance = m.balance - model.month.amount })
+                        |> List.map updateMemberCmd
+            in
+                model ! cmds
 
         DeleteMonthFromMember month member ->
             let
-                map member_ =
-                    if member_.id == member.id then
-                        { member_ | months = deleteMonthFromList month member.months, balance = member.balance + month.amount }
-                    else
-                        member_
+                newMember =
+                    { member
+                        | months = deleteMonthFromList month member.months
+                        , balance = member.balance + month.amount
+                    }
             in
-                { model | members = List.map map model.members } ! []
+                ( model, updateMemberCmd newMember )
 
         SelectLineItem { id, name, amount } ->
             { model | lineItem = LineItemInProcess (Just id) name amount } ! []
@@ -403,12 +417,9 @@ update msg model =
             Material.update msg_ model
 
 
-addMonthToActiveMembers : Month -> Member -> Member
-addMonthToActiveMembers month member =
-    if member.active == True && not (memberHasMonth member month) then
-        { member | months = month :: member.months, balance = member.balance - month.amount }
-    else
-        member
+updateMemberCmd : Member -> Cmd msg
+updateMemberCmd =
+    memberEncoder >> updateMemberPort
 
 
 memberHasMonth : Member -> Month -> Bool
@@ -430,49 +441,10 @@ saveMember : Model -> ( Model, Cmd Msg )
 saveMember model =
     case model.member of
         Just member ->
-            ( model, updateMemberPort <| memberEncoder { member | name = model.memberName } )
+            ( model, updateMemberCmd { member | name = model.memberName } )
 
         Nothing ->
-            ( model, addMemberPort <| JE.encode 0 <| memberEncoder <| memberWithName model.memberName )
-
-
-editMember : Model -> Member -> Model
-editMember model member =
-    let
-        map member_ =
-            if member_.id == member.id then
-                { member_ | name = model.memberName }
-            else
-                member_
-    in
-        { model
-            | members = List.map map model.members
-            , member = Nothing
-            , memberName = ""
-        }
-
-
-
---mem
-
-
-addMemberPayment : Model -> Member -> Model
-addMemberPayment model member =
-    let
-        map member_ =
-            if member_.id == member.id then
-                { member_
-                    | payments = Payment model.memberPayment :: member.payments
-                    , balance = member.balance + model.memberPayment
-                }
-            else
-                member_
-    in
-        { model
-            | members = List.map map model.members
-            , memberPayment = 0
-            , totalBalance = model.totalBalance + model.memberPayment
-        }
+            ( model, addMemberPort <| memberEncoder <| memberWithName model.memberName )
 
 
 saveLineItem : Model -> Model
@@ -551,7 +523,7 @@ subscriptions model =
         ]
 
 
-port addMemberPort : String -> Cmd msg
+port addMemberPort : JD.Value -> Cmd msg
 
 
 port updateMemberPort : JD.Value -> Cmd msg
@@ -836,7 +808,7 @@ paymentForm model =
 
 memberForm : Model -> Html Msg
 memberForm model =
-    Html.form [ onSubmit SaveMember ]
+    Html.form [ onSubmit SaveMemberName ]
         [ Textfield.render Mdl
             [ 8 ]
             model.mdl
@@ -864,7 +836,7 @@ monthOption month =
 
 monthForm : Model -> Html Msg
 monthForm model =
-    Html.form [ onSubmit AddMonth ]
+    Html.form [ onSubmit AddMonthToActiveMembers ]
         [ select [ on "change" (JD.map SelectMonth monthSelectDecoder) ]
             (List.map monthOption months)
         , br [] []
