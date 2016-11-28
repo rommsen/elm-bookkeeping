@@ -616,7 +616,7 @@ viewBody model =
 membersView : Model -> Html Msg
 membersView model =
     Grid.grid []
-        [ Grid.cell [ Grid.size Grid.All 2 ] []
+        [ Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
         , Grid.cell
             [ Grid.size Grid.All 4 ]
             [ memberActionsView model
@@ -626,14 +626,14 @@ membersView model =
             [ Grid.size Grid.All 4 ]
             [ memberPaneView model
             ]
-        , Grid.cell [ Grid.size Grid.All 2 ] []
-        , Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
+        , Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
         , Grid.cell
             [ Grid.size Grid.All 8 ]
             [ hr [] []
             , text (toString model)
             ]
-        , Grid.cell [ Grid.size Grid.All 2 ] []
+        , Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
         ]
 
 
@@ -792,14 +792,19 @@ memberDetailsHeaderView model header =
 
 memberPaymentListView : Member -> Html Msg
 memberPaymentListView member =
-    Table.table []
-        [ Table.thead []
-            [ Table.tr []
-                [ Table.th [] [ text "Date" ]
-                , Table.th [] [ text "Amount" ]
+    div []
+        [ Options.styled p
+            [ Typo.title ]
+            [ text "Payments" ]
+        , Table.table []
+            [ Table.thead []
+                [ Table.tr []
+                    [ Table.th [] [ text "Date" ]
+                    , Table.th [] [ text "Amount" ]
+                    ]
                 ]
+            , Table.tbody [] <| List.map (memberPaymentItemView member) member.payments
             ]
-        , Table.tbody [] <| List.map (memberPaymentItemView member) member.payments
         ]
 
 
@@ -823,15 +828,20 @@ memberPaymentItemView member payment =
 
 memberMonthListView : Member -> Html Msg
 memberMonthListView member =
-    Table.table []
-        [ Table.thead []
-            [ Table.tr []
-                [ Table.th [] [ text "Name" ]
-                , Table.th [] [ text "Amount" ]
-                , Table.th [] [ text "" ]
+    div []
+        [ Options.styled p
+            [ Typo.title ]
+            [ text "Active in month" ]
+        , Table.table []
+            [ Table.thead []
+                [ Table.tr []
+                    [ Table.th [] [ text "Name" ]
+                    , Table.th [] [ text "Amount" ]
+                    , Table.th [] [ text "" ]
+                    ]
                 ]
+            , Table.tbody [] <| List.map (memberMonthItemView member) member.months
             ]
-        , Table.tbody [] <| List.map (memberMonthItemView member) member.months
         ]
 
 
