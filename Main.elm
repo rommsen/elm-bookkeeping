@@ -57,14 +57,14 @@ type alias Payment =
 
 
 type alias LineItem =
-    { id : Int
+    { id : String
     , name : String
     , amount : Float
     }
 
 
 type alias LineItemInProcess =
-    { id : Maybe Int
+    { id : Maybe String
     , name : String
     , amount : Float
     }
@@ -97,6 +97,11 @@ months =
 emptyLineItem : LineItemInProcess
 emptyLineItem =
     LineItemInProcess Nothing "" 0
+
+
+newLineItem : LineItemInProcess -> LineItem
+newLineItem lineItem =
+    LineItem "" lineItem.name lineItem.amount
 
 
 memberWithName : String -> Member
@@ -231,6 +236,14 @@ paymentDecoder =
         |> Json.Decode.Pipeline.required "added" (dateDecoder)
 
 
+lineItemDecoder : JD.Decoder LineItem
+lineItemDecoder =
+    Json.Decode.Pipeline.decode LineItem
+        |> Json.Decode.Pipeline.required "id" (JD.string)
+        |> Json.Decode.Pipeline.required "name" (JD.string)
+        |> Json.Decode.Pipeline.required "amount" (JD.float)
+
+
 monthEncoder : Month -> JE.Value
 monthEncoder month =
     JE.object
@@ -260,6 +273,15 @@ memberEncoder member =
         ]
 
 
+lineItemEncoder : LineItem -> JE.Value
+lineItemEncoder lineItem =
+    JE.object
+        [ ( "id", JE.string <| lineItem.id )
+        , ( "name", JE.string <| lineItem.name )
+        , ( "amount", JE.float <| lineItem.amount )
+        ]
+
+
 type Msg
     = SaveMemberName
     | MemberAdded JD.Value
@@ -279,6 +301,7 @@ type Msg
     | InputLineItemName String
     | InputLineItemAmount String
     | SaveLineItem
+    | LineItemAdded JD.Value
     | DeleteLineItem LineItem
     | SelectTab Int
     | ChangeMemberPane MemberPane
@@ -295,7 +318,12 @@ update msg model =
             if (String.isEmpty model.memberName) then
                 model ! []
             else
-                saveMember model
+                case model.member of
+                    Just member ->
+                        ( model, updateMemberCmd { member | name = model.memberName } )
+
+                    Nothing ->
+                        ( model, addMemberPort <| memberEncoder <| memberWithName model.memberName )
 
         MemberAdded value ->
             case JD.decodeValue memberDecoder value of
@@ -418,11 +446,19 @@ update msg model =
                 ( Err bla, _ ) ->
                     model ! []
 
+        LineItemAdded value ->
+            case JD.decodeValue lineItemDecoder value of
+                Ok lineItem ->
+                    { model | lineItems = lineItem :: model.lineItems } ! []
+
+                Err err ->
+                    model ! []
+
         SaveLineItem ->
             if (String.isEmpty model.lineItem.name) then
                 model ! []
             else
-                saveLineItem model ! []
+                saveLineItem model
 
         DeleteLineItem lineItem ->
             { model
@@ -466,73 +502,65 @@ monthEquals a b =
     ( a.month, a.year ) == ( b.month, b.year )
 
 
-saveMember : Model -> ( Model, Cmd Msg )
-saveMember model =
-    case model.member of
-        Just member ->
-            ( model, updateMemberCmd { member | name = model.memberName } )
-
-        Nothing ->
-            ( model, addMemberPort <| memberEncoder <| memberWithName model.memberName )
-
-
-saveLineItem : Model -> Model
+saveLineItem : Model -> ( Model, Cmd Msg )
 saveLineItem model =
     case model.lineItem.id of
         Just id ->
-            editLineItem model id
+            editLineItem model id ! []
 
         Nothing ->
-            addLineItem model
+            ( model, addLineItemPort <| lineItemEncoder <| newLineItem model.lineItem )
 
 
-editLineItem : Model -> Int -> Model
+editLineItem : Model -> String -> Model
 editLineItem model id =
-    let
-        newAmount =
-            model.lineItem.amount
-
-        oldAmount =
-            List.foldl
-                (\lineItem amount ->
-                    if lineItem.id == id then
-                        lineItem.amount
-                    else
-                        0
-                )
-                0
-                model.lineItems
-
-        map lineItem =
-            if lineItem.id == id then
-                { lineItem
-                    | name = model.lineItem.name
-                    , amount = newAmount
-                }
-            else
-                lineItem
-    in
-        { model
-            | lineItems = List.map map model.lineItems
-            , lineItem = emptyLineItem
-            , totalBalance = model.totalBalance - oldAmount + newAmount
-        }
+    model
 
 
-addLineItem : Model -> Model
-addLineItem model =
-    let
-        newLineItem =
-            { id = List.length model.lineItems
-            , name = model.lineItem.name
-            , amount = model.lineItem.amount
-            }
-    in
-        { model
-            | lineItems = newLineItem :: model.lineItems
-            , lineItem = emptyLineItem
-            , totalBalance = model.totalBalance + newLineItem.amount
-        }
+
+--    let
+--        newAmount =
+--            model.lineItem.amount
+--
+--        oldAmount =
+--            List.foldl
+--                (\lineItem amount ->
+--                    if lineItem.id == id then
+--                        lineItem.amount
+--                    else
+--                        0
+--                )
+--                0
+--                model.lineItems
+--
+--        map lineItem =
+--            if lineItem.id == id then
+--                { lineItem
+--                    | name = model.lineItem.name
+--                    , amount = newAmount
+--                }
+--            else
+--                lineItem
+--    in
+--        { model
+--            | lineItems = List.map map model.lineItems
+--            , lineItem = emptyLineItem
+--            , totalBalance = model.totalBalance - oldAmount + newAmount
+--        }
+--addLineItem : Model -> Model
+--addLineItem model =
+--    let
+--        newLineItem =
+--            { id = List.length model.lineItems
+--            , name = model.lineItem.name
+--            , amount = model.lineItem.amount
+--            }
+--    in
+--        { model
+--            | lineItems = newLineItem :: model.lineItems
+--            , lineItem = emptyLineItem
+--            , totalBalance = model.totalBalance + newLineItem.amount
+--        }
 
 
 deleteLineItem : LineItem -> List LineItem -> List LineItem
@@ -549,6 +577,7 @@ subscriptions model =
     Sub.batch
         [ memberAdded MemberAdded
         , memberUpdated MemberUpdated
+        , lineItemAdded LineItemAdded
         ]
 
 
@@ -562,6 +591,12 @@ port memberAdded : (JD.Value -> msg) -> Sub msg
 
 
 port memberUpdated : (JD.Value -> msg) -> Sub msg
+
+
+port addLineItemPort : JD.Value -> Cmd msg
+
+
+port lineItemAdded : (JD.Value -> msg) -> Sub msg
 
 
 
@@ -1020,7 +1055,7 @@ lineItemForm model =
             , Button.ripple
             , Button.type_ "submit"
             ]
-            [ text "Add line item" ]
+            [ text "Save line item" ]
         ]
 
 
