@@ -10,29 +10,38 @@
 <script>
     var app = Elm.Main.fullscreen();
 
-    app.ports.addMemberPort.subscribe(function (member) {
+    app.ports.addMember.subscribe(function (member) {
         addMember(member).then(function (response) {
-            console.log('member added', response)
-//            app.ports.customerSaved.send(response.key);
         }, function (err) {
             console.log("error:", err);
         });
     });
 
-    app.ports.updateMemberPort.subscribe(function (member) {
-        console.log(member);
+    app.ports.updateMember.subscribe(function (member) {
         updateMember(member).then(function (response) {
-            console.log('member updated', response)
-//            app.ports.customerSaved.send(response.key);
         }, function (err) {
             console.log("error:", err);
         });
     });
 
-    app.ports.addLineItemPort.subscribe(function (lineItem) {
+    app.ports.addLineItem.subscribe(function (lineItem) {
       addLineItem(lineItem).then(function (response) {
-        console.log('lineItem added', response)
-//            app.ports.customerSaved.send(response.key);
+      }, function (err) {
+        console.log("error:", err);
+      });
+    });
+
+    app.ports.updateLineItem.subscribe(function (lineItem) {
+      console.log('update',lineItem)
+      updateLineItem(lineItem).then(function (response) {
+      }, function (err) {
+        console.log("error:", err);
+      });
+    });
+
+    app.ports.deleteLineItem.subscribe(function (lineItem) {
+      console.log('delete')
+      deleteLineItem(lineItem).then(function (response) {
       }, function (err) {
         console.log("error:", err);
       });
@@ -56,7 +65,12 @@
     });
     lineItemlistener.on("child_changed", function (data) {
         var member = Object.assign({}, data.val(), { id: data.key });
-        app.ports.memberUpdated.send(member);
+        app.ports.lineItemUpdated.send(member);
+    });
+    lineItemlistener.on("child_removed", function (data) {
+        var lineItem = Object.assign({}, data.val(), { id: data.key });
+        console.log('remnnnn', lineItem);
+        app.ports.lineItemDeleted.send(lineItem);
     });
 
 

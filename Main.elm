@@ -294,6 +294,7 @@ type Msg
     | SaveLineItem
     | LineItemAdded JD.Value
     | LineItemUpdated JD.Value
+    | LineItemDeleted JD.Value
     | DeleteLineItem LineItem
     | SelectTab Int
     | ChangeMemberPane MemberPane
@@ -315,7 +316,7 @@ update msg model =
                         ( model, updateMemberCmd { member | name = model.memberName } )
 
                     Nothing ->
-                        ( model, addMemberPort <| memberEncoder <| memberWithName model.memberName )
+                        ( model, addMember <| memberEncoder <| memberWithName model.memberName )
 
         MemberAdded value ->
             case JD.decodeValue memberDecoder value of
@@ -428,7 +429,7 @@ update msg model =
         LineItemAdded value ->
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
-                    withSummaries { model | lineItems = lineItem :: model.lineItems } ! []
+                    withSummaries { model | lineItems = lineItem :: model.lineItems, lineItemAmount = 0, lineItemName = "" } ! []
 
                 Err err ->
                     model ! []
@@ -463,14 +464,18 @@ update msg model =
                         ( model, updateLineItemCmd { lineItem | name = model.lineItemName, amount = model.lineItemAmount } )
 
                     Nothing ->
-                        ( model, addLineItemPort <| lineItemEncoder <| newLineItem model.lineItemName model.lineItemAmount )
+                        ( model, addLineItem <| lineItemEncoder <| newLineItem model.lineItemName model.lineItemAmount )
 
         DeleteLineItem lineItem ->
-            { model
-                | lineItems = deleteLineItem lineItem model.lineItems
-                , totalBalance = model.totalBalance - lineItem.amount
-            }
-                ! []
+            ( model, deleteLineItem <| lineItemEncoder lineItem )
+
+        LineItemDeleted value ->
+            case JD.decodeValue lineItemDecoder value of
+                Ok lineItem ->
+                    withSummaries { model | lineItems = deleteLineItemFromList lineItem model.lineItems } ! []
+
+                Err err ->
+                    model ! []
 
         SelectTab num ->
             { model | selectedTab = num } ! []
@@ -489,12 +494,12 @@ update msg model =
 
 updateMemberCmd : Member -> Cmd msg
 updateMemberCmd =
-    memberEncoder >> updateMemberPort
+    memberEncoder >> updateMember
 
 
 updateLineItemCmd : LineItem -> Cmd msg
 updateLineItemCmd =
-    lineItemEncoder >> updateMemberPort
+    lineItemEncoder >> updateLineItem
 
 
 memberHasMonth : Member -> Month -> Bool
@@ -512,8 +517,8 @@ monthEquals a b =
     ( a.month, a.year ) == ( b.month, b.year )
 
 
-deleteLineItem : LineItem -> List LineItem -> List LineItem
-deleteLineItem lineItem list =
+deleteLineItemFromList : LineItem -> List LineItem -> List LineItem
+deleteLineItemFromList lineItem list =
     List.filter (\{ id } -> id /= lineItem.id) list
 
 
@@ -574,13 +579,14 @@ subscriptions model =
         , memberUpdated MemberUpdated
         , lineItemAdded LineItemAdded
         , lineItemUpdated LineItemUpdated
+        , lineItemDeleted LineItemDeleted
         ]
 
 
-port addMemberPort : JD.Value -> Cmd msg
+port addMember : JD.Value -> Cmd msg
 
 
-port updateMemberPort : JD.Value -> Cmd msg
+port updateMember : JD.Value -> Cmd msg
 
 
 port memberAdded : (JD.Value -> msg) -> Sub msg
@@ -589,16 +595,22 @@ port memberAdded : (JD.Value -> msg) -> Sub msg
 port memberUpdated : (JD.Value -> msg) -> Sub msg
 
 
-port addLineItemPort : JD.Value -> Cmd msg
+port addLineItem : JD.Value -> Cmd msg
 
 
-port updateLineItemPort : JD.Value -> Cmd msg
+port updateLineItem : JD.Value -> Cmd msg
+
+
+port deleteLineItem : JD.Value -> Cmd msg
 
 
 port lineItemAdded : (JD.Value -> msg) -> Sub msg
 
 
 port lineItemUpdated : (JD.Value -> msg) -> Sub msg
+
+
+port lineItemDeleted : (JD.Value -> msg) -> Sub msg
 
 
 
