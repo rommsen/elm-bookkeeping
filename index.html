@@ -1,12 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <script src="main.js"></script>
+    <meta charset="utf-8">
+    <script src="https://www.gstatic.com/firebasejs/3.6.1/firebase.js"></script>
+    <script src="main.js"></script>
+    <script src="appfb.js"></script>
 </head>
 <body>
 <script>
-  Elm.Main.fullscreen();
+    var app = Elm.Main.fullscreen();
+
+    app.ports.addMember.subscribe(function (member) {
+        addMember(member).then(function (response) {
+        }, function (err) {
+            console.log("error:", err);
+        });
+    });
+
+    app.ports.updateMember.subscribe(function (member) {
+        updateMember(member).then(function (response) {
+        }, function (err) {
+            console.log("error:", err);
+        });
+    });
+
+    app.ports.addLineItem.subscribe(function (lineItem) {
+      addLineItem(lineItem).then(function (response) {
+      }, function (err) {
+        console.log("error:", err);
+      });
+    });
+
+    app.ports.updateLineItem.subscribe(function (lineItem) {
+      console.log('update',lineItem)
+      updateLineItem(lineItem).then(function (response) {
+      }, function (err) {
+        console.log("error:", err);
+      });
+    });
+
+    app.ports.deleteLineItem.subscribe(function (lineItem) {
+      console.log('delete')
+      deleteLineItem(lineItem).then(function (response) {
+      }, function (err) {
+        console.log("error:", err);
+      });
+    });
+
+
+    var memberListener = memberListener();
+    memberListener.on("child_added", function (data) {
+        var member = Object.assign({}, data.val(), { id: data.key });
+        app.ports.memberAdded.send(member);
+    });
+    memberListener.on("child_changed", function (data) {
+        var member = Object.assign({}, data.val(), { id: data.key });
+        app.ports.memberUpdated.send(member);
+    });
+
+    var lineItemlistener = lineItemlistener();
+    lineItemlistener.on("child_added", function (data) {
+        var lineItem = Object.assign({}, data.val(), { id: data.key });
+        app.ports.lineItemAdded.send(lineItem);
+    });
+    lineItemlistener.on("child_changed", function (data) {
+        var member = Object.assign({}, data.val(), { id: data.key });
+        app.ports.lineItemUpdated.send(member);
+    });
+    lineItemlistener.on("child_removed", function (data) {
+        var lineItem = Object.assign({}, data.val(), { id: data.key });
+        console.log('remnnnn', lineItem);
+        app.ports.lineItemDeleted.send(lineItem);
+    });
+
+
 </script>
 </body>
 </html>
