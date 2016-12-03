@@ -9,18 +9,6 @@ import Json.Decode as JD
 import Json.Encode as JE
 import Json.Decode.Pipeline
 import Task
-import Material
-import Material.Scheme
-import Material.Button as Button
-import Material.Options exposing (css)
-import Material.Icon as Icon
-import Material.Layout as Layout
-import Material.Color as Color
-import Material.Table as Table
-import Material.Textfield as Textfield
-import Material.Options as Options
-import Material.Typography as Typo
-import Material.Grid as Grid
 
 
 -- MODEL
@@ -62,10 +50,6 @@ type alias LineItem =
     }
 
 
-type alias Mdl =
-    Material.Model
-
-
 type alias Model =
     { members : List Member
     , member : Maybe Member
@@ -80,7 +64,6 @@ type alias Model =
     , totalMemberDebit : Float
     , memberPane : MemberPane
     , selectedTab : Int
-    , mdl : Material.Model
     }
 
 
@@ -114,11 +97,9 @@ initialModel =
     , totalMemberDebit = 0
     , memberPane = MemberPaneShowNone
     , selectedTab = 0
-    , mdl = Material.model
     }
 
 
-init : ( Model, Cmd Msg )
 init =
     ( initialModel, Cmd.none )
 
@@ -298,7 +279,6 @@ type Msg
     | DeleteLineItem LineItem
     | SelectTab Int
     | ChangeMemberPane MemberPane
-    | Mdl (Material.Msg Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -488,9 +468,6 @@ update msg model =
                 _ ->
                     { model | memberPane = memberPane, member = Nothing, memberName = "" } ! []
 
-        Mdl msg_ ->
-            Material.update msg_ model
-
 
 updateMemberCmd : Member -> Cmd msg
 updateMemberCmd =
@@ -619,34 +596,74 @@ port lineItemDeleted : (JD.Value -> msg) -> Sub msg
 
 view : Model -> Html Msg
 view model =
-    Material.Scheme.topWithScheme Color.Teal Color.LightGreen <|
-        Layout.render Mdl
-            model.mdl
-            [ Layout.fixedHeader
-            , Layout.fixedTabs
-            , Layout.onSelectTab SelectTab
-            , Layout.selectedTab model.selectedTab
-            ]
-            { header = viewHeader model
-            , drawer = []
-            , tabs = ( [ text "Members", text "LineItems" ], [ Color.background (Color.color Color.Teal Color.S400) ] )
-            , main = [ viewBody model ]
-            }
+    div []
+        [ viewHeader model
+        , viewBody model
+        ]
 
 
-viewHeader : Model -> List (Html Msg)
+viewHeader : Model -> Html Msg
 viewHeader model =
-    [ Layout.row
-        []
-        [ Layout.title [] [ text "Bookkeeping" ]
-        , Layout.spacer
-        , Layout.title []
-            [ span
-                []
-                [ text <| "Total: " ++ toString model.totalBalance ]
+    section [ class "hero  is-primary" ]
+        [ div [ class "hero-head" ]
+            [ div [ class "container" ]
+                [ div [ class "nav" ]
+                    [ div [ class "nav-left" ]
+                        [ span [ class "nav-item is-brand" ] [ text "Bookkeeping" ] ]
+                    ]
+                ]
+            ]
+        , div [ class "hero-body" ]
+            [ div [ class "container" ]
+                [ div [ class "columns is-vcentered" ]
+                    [ div [ class "column" ]
+                        [ div [ class "box" ]
+                            [ div
+                                [ class "notification"
+                                , classList
+                                    [ ( "is-danger", model.totalBalance < 0 )
+                                    , ( "is-primary", model.totalBalance >= 0 )
+                                    ]
+                                ]
+                                [ p [ class "title" ] [ text <| "Balance:  " ++ toString model.totalBalance ++ "€" ] ]
+                            ]
+                        ]
+                    , div [ class "column" ]
+                        [ div [ class "box" ]
+                            [ div
+                                [ class "notification"
+                                , classList
+                                    [ ( "is-danger", model.totalMemberDebit < 0 )
+                                    , ( "is-primary", model.totalMemberDebit >= 0 )
+                                    ]
+                                ]
+                                [ p [ class "title" ] [ text <| "Member:  " ++ toString model.totalMemberDebit ++ "€" ] ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        , div [ class "hero-foot" ]
+            [ div [ class "container" ]
+                [ nav [ class "tabs is-boxed is-medium" ]
+                    [ ul []
+                        [ li
+                            [ classList [ ( "is-active", model.selectedTab == 0 ) ]
+                            , onClick <| SelectTab 0
+                            ]
+                            [ a [] [ text "Members" ]
+                            ]
+                        , li
+                            [ classList [ ( "is-active", model.selectedTab == 1 ) ]
+                            , onClick <| SelectTab 1
+                            ]
+                            [ a [] [ text "LineItems" ]
+                            ]
+                        ]
+                    ]
+                ]
             ]
         ]
-    ]
 
 
 viewBody : Model -> Html Msg
@@ -662,178 +679,167 @@ viewBody model =
             text "404"
 
 
+modelView : Model -> Html Msg
+modelView model =
+    div [ class "tile is-ancestor" ]
+        [ div [ class "tile is-parent" ]
+            [ div [ class "tile is-child box" ]
+                [ span [] [ text (toString model) ] ]
+            ]
+        ]
+
+
 membersView : Model -> Html Msg
 membersView model =
-    Grid.grid []
-        [ Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
-        , Grid.cell
-            [ Grid.size Grid.All 4 ]
-            [ memberActionsView model
-            , memberListView model
+    section [ class "section" ]
+        [ div [ class "container" ]
+            [ div [ class "tile is-ancestor" ]
+                [ div [ class "tile is-parent" ]
+                    [ div [ class "tile is-child box" ]
+                        [ memberActionsView model
+                        , memberListView model
+                        ]
+                    ]
+                , div [ class "tile is-parent" ]
+                    [ memberPaneView model
+                    ]
+                ]
+            , modelView model
             ]
-        , Grid.cell
-            [ Grid.size Grid.All 4 ]
-            [ memberPaneView model
-            ]
-        , Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
-        , Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
-        , Grid.cell
-            [ Grid.size Grid.All 8 ]
-            [ hr [] []
-            , text (toString model)
-            ]
-        , Grid.cell [ Grid.size Grid.Desktop 2, Grid.size Grid.Tablet 1, Grid.size Grid.Phone 0 ] []
         ]
 
 
 lineItemsView : Model -> Html Msg
 lineItemsView model =
-    Grid.grid []
-        [ Grid.cell [ Grid.size Grid.All 2 ] []
-        , Grid.cell
-            [ Grid.size Grid.All 4 ]
-            [ lineItemListView model ]
-        , Grid.cell
-            [ Grid.size Grid.All 4 ]
-            [ div []
-                [ Options.styled p
-                    [ Typo.display1 ]
-                    [ text "Line Item" ]
-                , lineItemForm model
+    section [ class "section" ]
+        [ div [ class "container" ]
+            [ div [ class "tile is-ancestor" ]
+                [ div [ class "tile is-parent" ]
+                    [ div [ class "tile is-child box" ]
+                        [ lineItemListView model ]
+                    ]
+                , div [ class "tile is-parent" ]
+                    [ div [ class "tile is-child box" ]
+                        [ h1 [ class "title" ] [ text "Line Item" ]
+                        , lineItemForm model
+                        ]
+                    ]
                 ]
+            , modelView model
             ]
-        , Grid.cell [ Grid.size Grid.All 2 ] []
-        , Grid.cell [ Grid.size Grid.All 2 ] []
-        , Grid.cell
-            [ Grid.size Grid.All 8 ]
-            [ hr [] []
-            , text (toString model)
-            ]
-        , Grid.cell [ Grid.size Grid.All 2 ] []
         ]
 
 
 memberActionsView : Model -> Html Msg
 memberActionsView model =
-    Grid.grid []
-        [ Grid.cell [ Grid.size Grid.All 4 ]
-            [ Button.render Mdl
-                [ 1 ]
-                model.mdl
-                [ Button.raised
-                , Button.colored
-                , Button.ripple
-                , Button.onClick <| ChangeMemberPane MemberPaneAddMember
+    div [ class "control is-grouped" ]
+        [ p [ class "control" ]
+            [ button
+                [ class "button is-primary"
+                , onClick <| ChangeMemberPane MemberPaneAddMember
                 ]
                 [ text "Add Member" ]
             ]
-        , Grid.cell [ Grid.size Grid.All 4 ]
-            [ Button.render Mdl
-                [ 2 ]
-                model.mdl
-                [ Button.raised
-                , Button.colored
-                , Button.ripple
-                , Button.onClick <| ChangeMemberPane MemberPaneAddMonth
+        , p [ class "control" ]
+            [ button
+                [ class "button is-primary"
+                , onClick <| ChangeMemberPane MemberPaneAddMonth
                 ]
                 [ text "Add Month" ]
             ]
-        , Grid.cell [ Grid.size Grid.All 4 ] []
         ]
 
 
 memberListView : Model -> Html Msg
 memberListView model =
-    Table.table []
-        [ Table.thead []
-            [ Table.tr []
-                [ Table.th [] [ text "Name" ]
-                , Table.th [] [ text "Balance" ]
-                , Table.th [] [ text "" ]
+    table [ class "table is-striped " ]
+        [ thead []
+            [ tr []
+                [ th [] [ text "Name" ]
+                , th [] [ text "Balance" ]
+                , th [] [ text "" ]
                 ]
             ]
-        , Table.tbody [] <| List.map (memberItemView model) model.members
+        , tbody [] <| List.map (memberItemView model) model.members
         ]
 
 
 memberItemView : Model -> Member -> Html Msg
 memberItemView model member =
     let
-        activeIcon =
+        active =
             if member.active then
-                "done"
+                "Deaktivieren"
             else
-                "not_interested"
+                "Aktivieren"
     in
-        Table.tr []
-            [ Table.td [] [ text member.name ]
-            , Table.td [ Table.numeric ] [ text <| toString (memberBalance member) ++ " €" ]
-            , Table.td []
-                [ Button.render Mdl
-                    [ 3 ]
-                    model.mdl
-                    [ Button.minifab
-                    , Button.colored
-                    , Button.ripple
-                    , Button.onClick <| ChangeMemberPane <| MemberPaneShowDetails member
+        tr []
+            [ td [] [ text member.name ]
+            , td [] [ text <| toString (memberBalance member) ++ " €" ]
+            , td []
+                [ div [ class "control is-grouped" ]
+                    [ p [ class "control" ]
+                        [ button
+                            [ class "button is-primary is-inverted"
+                            , onClick <| ChangeMemberPane <| MemberPaneShowDetails member
+                            ]
+                            [ text "Details" ]
+                        ]
+                    , p [ class "control" ]
+                        [ button
+                            [ class "button is-primary is-inverted"
+                            , onClick <| ToggleMemberIsActive member
+                            ]
+                            [ text active ]
+                        ]
                     ]
-                    [ Icon.i "open_in_new" ]
-                , Button.render Mdl
-                    [ 4 ]
-                    model.mdl
-                    [ Button.minifab
-                    , Button.colored
-                    , Button.ripple
-                    , Button.onClick <| ToggleMemberIsActive member
-                    ]
-                    [ Icon.i activeIcon ]
                 ]
             ]
 
 
 memberPaneView : Model -> Html Msg
 memberPaneView model =
-    div []
-        (case model.memberPane of
-            MemberPaneShowNone ->
-                []
+    case model.memberPane of
+        MemberPaneShowNone ->
+            div [] []
 
-            MemberPaneShowDetails _ ->
-                case model.member of
-                    Just member ->
+        MemberPaneShowDetails _ ->
+            case model.member of
+                Just member ->
+                    div [ class "tile is-child box" ]
                         [ memberDetailsHeaderView model "Member"
                         , memberForm model
+                        , hr [] []
                         , paymentForm model
+                        , hr [] []
                         , memberPaymentListView member
+                        , hr [] []
                         , memberMonthListView member
                         ]
 
-                    Nothing ->
-                        []
+                Nothing ->
+                    div [] []
 
-            MemberPaneAddMonth ->
+        MemberPaneAddMonth ->
+            div [ class "tile is-child box" ]
                 [ memberDetailsHeaderView model "Add month"
                 , monthForm model
                 ]
 
-            MemberPaneAddMember ->
+        MemberPaneAddMember ->
+            div [ class "tile is-child box" ]
                 [ memberDetailsHeaderView model "Add member"
                 , memberForm model
                 ]
-        )
 
 
 memberDetailsHeaderView : Model -> String -> Html Msg
 memberDetailsHeaderView model header =
-    Options.styled p
-        [ Typo.display1 ]
+    h1 [ class "title" ]
         [ text header
-        , Button.render
-            Mdl
-            [ 5 ]
-            model.mdl
-            [ Button.colored
-            , Button.onClick <| ChangeMemberPane MemberPaneShowNone
+        , button
+            [ class "button is-small is-link"
+            , onClick <| ChangeMemberPane MemberPaneShowNone
             ]
             [ text "Cancel" ]
         ]
@@ -842,17 +848,15 @@ memberDetailsHeaderView model header =
 memberPaymentListView : Member -> Html Msg
 memberPaymentListView member =
     div []
-        [ Options.styled p
-            [ Typo.title ]
-            [ text "Payments" ]
-        , Table.table []
-            [ Table.thead []
-                [ Table.tr []
-                    [ Table.th [] [ text "Date" ]
-                    , Table.th [] [ text "Amount" ]
+        [ h1 [ class "title" ] [ text "Payments" ]
+        , table [ class "table is-striped" ]
+            [ thead []
+                [ tr []
+                    [ th [] [ text "Date" ]
+                    , th [] [ text "Amount" ]
                     ]
                 ]
-            , Table.tbody [] <| List.map (memberPaymentItemView member) member.payments
+            , tbody [] <| List.map (memberPaymentItemView member) member.payments
             ]
         ]
 
@@ -869,39 +873,40 @@ memberPaymentItemView member payment =
         year =
             Date.year payment.added
     in
-        Table.tr []
-            [ Table.td [] [ text <| toString day ++ "." ++ toString month ++ "." ++ toString year ]
-            , Table.td [ Table.numeric ] [ text <| toString payment.amount ++ " €" ]
+        tr []
+            [ td [] [ text <| toString day ++ "." ++ toString month ++ "." ++ toString year ]
+            , td [] [ text <| toString payment.amount ++ " €" ]
             ]
 
 
 memberMonthListView : Member -> Html Msg
 memberMonthListView member =
     div []
-        [ Options.styled p
-            [ Typo.title ]
+        [ h1 [ class "title" ]
             [ text "Active in month" ]
-        , Table.table []
-            [ Table.thead []
-                [ Table.tr []
-                    [ Table.th [] [ text "Name" ]
-                    , Table.th [] [ text "Amount" ]
-                    , Table.th [] [ text "" ]
+        , table [ class "table is-striped " ]
+            [ thead []
+                [ tr []
+                    [ th [] [ text "Name" ]
+                    , th [] [ text "Amount" ]
+                    , th [] [ text "" ]
                     ]
                 ]
-            , Table.tbody [] <| List.map (memberMonthItemView member) member.months
+            , tbody [] <| List.map (memberMonthItemView member) member.months
             ]
         ]
 
 
 memberMonthItemView : Member -> Month -> Html Msg
 memberMonthItemView member month =
-    Table.tr []
-        [ Table.td [] [ text <| toString month.month ++ " " ++ toString month.year ]
-        , Table.td [ Table.numeric ] [ text <| toString month.amount ++ " €" ]
-        , Table.td []
+    tr []
+        [ td [] [ text <| toString month.month ++ " " ++ toString month.year ]
+        , td [] [ text <| toString month.amount ++ " €" ]
+        , td []
             [ button
-                [ onClick <| DeleteMonthFromMember month member ]
+                [ class "button is-danger is-inverted"
+                , onClick <| DeleteMonthFromMember month member
+                ]
                 [ text "Delete" ]
             ]
         ]
@@ -910,46 +915,47 @@ memberMonthItemView member month =
 paymentForm : Model -> Html Msg
 paymentForm model =
     Html.form [ onSubmit CreateMemberPayment ]
-        [ Textfield.render Mdl
-            [ 6 ]
-            model.mdl
-            [ Textfield.label "Payment"
-            , Textfield.floatingLabel
-            , Textfield.text_
-            , Textfield.onInput InputMemberPaymentAmount
-            , Textfield.value <| toString model.memberPayment
+        [ div [ class "control is-grouped" ]
+            [ p [ class "control" ]
+                [ input
+                    [ type_ "text"
+                    , class "input"
+                    , onInput InputMemberPaymentAmount
+                    , placeholder "Payment"
+                    , value <| toString model.memberPayment
+                    ]
+                    []
+                ]
+            , p [ class "control" ]
+                [ button [ type_ "submit", class "button is-primary" ]
+                    [ text "AddPayment"
+                    ]
+                ]
             ]
-        , Button.render
-            Mdl
-            [ 7 ]
-            model.mdl
-            [ Button.colored
-            , Button.type_ "submit"
-            ]
-            [ text "Add payment" ]
         ]
 
 
 memberForm : Model -> Html Msg
 memberForm model =
     Html.form [ onSubmit SaveMemberName ]
-        [ Textfield.render Mdl
-            [ 8 ]
-            model.mdl
-            [ Textfield.label "Name"
-            , Textfield.floatingLabel
-            , Textfield.text_
-            , Textfield.onInput InputMemberName
-            , Textfield.value model.memberName
+        [ div [ class "control is-grouped" ]
+            [ p
+                [ class "control" ]
+                [ input
+                    [ type_ "text"
+                    , class "input"
+                    , onInput InputMemberName
+                    , placeholder "Name"
+                    , value <| model.memberName
+                    ]
+                    []
+                ]
+            , p [ class "control" ]
+                [ button [ type_ "submit", class "button is-primary" ]
+                    [ text "Save"
+                    ]
+                ]
             ]
-        , Button.render
-            Mdl
-            [ 9 ]
-            model.mdl
-            [ Button.colored
-            , Button.type_ "submit"
-            ]
-            [ text "Save" ]
         ]
 
 
@@ -961,79 +967,80 @@ monthOption month =
 monthForm : Model -> Html Msg
 monthForm model =
     Html.form [ onSubmit AddMonthToActiveMembers ]
-        [ select [ on "change" (JD.map SelectMonth monthSelectDecoder) ]
-            (List.map monthOption months)
-        , br [] []
-        , Textfield.render Mdl
-            [ 10 ]
-            model.mdl
-            [ Textfield.label "Year"
-            , Textfield.floatingLabel
-            , Textfield.text_
-            , Textfield.onInput InputMonthYear
-            , Textfield.value <| toString model.month.year
+        [ label [ class "label" ] [ text "Month" ]
+        , p [ class "control" ]
+            [ span [ class "select" ]
+                [ select
+                    [ on "change" (JD.map SelectMonth monthSelectDecoder) ]
+                    (List.map monthOption months)
+                ]
             ]
-        , br [] []
-        , Textfield.render Mdl
-            [ 11 ]
-            model.mdl
-            [ Textfield.label "Amount"
-            , Textfield.floatingLabel
-            , Textfield.text_
-            , Textfield.onInput InputMonthAmount
-            , Textfield.value <| toString model.month.amount
+        , label [ class "label" ] [ text "Year" ]
+        , p [ class "control" ]
+            [ input
+                [ type_ "text"
+                , class "input"
+                , onInput InputMonthYear
+                , placeholder "Year"
+                , value <| toString model.month.year
+                ]
+                []
             ]
-        , br [] []
-        , Button.render
-            Mdl
-            [ 11 ]
-            model.mdl
-            [ Button.colored
-            , Button.ripple
-            , Button.type_ "submit"
+        , label [ class "label" ] [ text "Amount" ]
+        , p [ class "control" ]
+            [ input
+                [ type_ "text"
+                , class "input"
+                , onInput InputMonthAmount
+                , placeholder "Amount"
+                , value <| toString model.month.amount
+                ]
+                []
             ]
-            [ text "Add month to active members" ]
+        , p [ class "control" ]
+            [ button [ type_ "submit", class "button is-primary" ]
+                [ text "Add month to active members"
+                ]
+            ]
         ]
 
 
 lineItemListView : Model -> Html Msg
 lineItemListView model =
-    Table.table []
-        [ Table.thead []
-            [ Table.tr []
-                [ Table.th [] [ text "Name" ]
-                , Table.th [] [ text "Amount" ]
-                , Table.th [] [ text "" ]
+    table [ class "table is-striped " ]
+        [ thead []
+            [ tr []
+                [ th [] [ text "Name" ]
+                , th [] [ text "Amount" ]
+                , th [] [ text "" ]
                 ]
             ]
-        , Table.tbody [] <| List.map (lineItemView model) model.lineItems
+        , tbody [] <| List.map (lineItemView model) model.lineItems
         ]
 
 
 lineItemView : Model -> LineItem -> Html Msg
 lineItemView model lineItem =
-    Table.tr []
-        [ Table.td [] [ text <| lineItem.name ]
-        , Table.td [ Table.numeric ] [ text <| toString lineItem.amount ++ " €" ]
-        , Table.td []
-            [ Button.render Mdl
-                [ 13 ]
-                model.mdl
-                [ Button.minifab
-                , Button.colored
-                , Button.ripple
-                , Button.onClick <| SelectLineItem lineItem
+    tr []
+        [ td [] [ text <| lineItem.name ]
+        , td [] [ text <| toString lineItem.amount ++ " €" ]
+        , td []
+            [ div [ class "control is-grouped" ]
+                [ p [ class "control" ]
+                    [ button
+                        [ class "button is-primary is-inverted"
+                        , onClick <| SelectLineItem lineItem
+                        ]
+                        [ text "Change" ]
+                    ]
+                , p [ class "control" ]
+                    [ button
+                        [ class "button is-danger is-inverted"
+                        , onClick <| DeleteLineItem lineItem
+                        ]
+                        [ text "Delete" ]
+                    ]
                 ]
-                [ Icon.i "open_in_new" ]
-            , Button.render Mdl
-                [ 14 ]
-                model.mdl
-                [ Button.minifab
-                , Button.colored
-                , Button.ripple
-                , Button.onClick <| DeleteLineItem lineItem
-                ]
-                [ Icon.i "delete" ]
             ]
         ]
 
@@ -1041,35 +1048,35 @@ lineItemView model lineItem =
 lineItemForm : Model -> Html Msg
 lineItemForm model =
     Html.form [ onSubmit SaveLineItem ]
-        [ Textfield.render Mdl
-            [ 15 ]
-            model.mdl
-            [ Textfield.label "Name"
-            , Textfield.floatingLabel
-            , Textfield.text_
-            , Textfield.onInput InputLineItemName
-            , Textfield.value model.lineItemName
+        [ label [ class "label" ] [ text "Name" ]
+        , p [ class "control" ]
+            [ input
+                [ type_ "text"
+                , class "input"
+                , onInput InputLineItemName
+                , placeholder "Name"
+                , value <| model.lineItemName
+                ]
+                []
             ]
-        , br [] []
-        , Textfield.render Mdl
-            [ 16 ]
-            model.mdl
-            [ Textfield.label "Amount"
-            , Textfield.floatingLabel
-            , Textfield.text_
-            , Textfield.onInput InputLineItemAmount
-            , Textfield.value <| toString model.lineItemAmount
+        , label [ class "label" ] [ text "Amount" ]
+        , p [ class "control" ]
+            [ input
+                [ type_ "text"
+                , class "input"
+                , onInput InputLineItemAmount
+                , placeholder "Amount"
+                , value <| toString model.lineItemAmount
+                ]
+                []
             ]
-        , br [] []
-        , Button.render
-            Mdl
-            [ 17 ]
-            model.mdl
-            [ Button.colored
-            , Button.ripple
-            , Button.type_ "submit"
+        , p [ class "control" ]
+            [ button
+                [ class "button is-primary"
+                , type_ "submit"
+                ]
+                [ text "Save line item" ]
             ]
-            [ text "Save line item" ]
         ]
 
 
