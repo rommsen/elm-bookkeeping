@@ -21,6 +21,7 @@ initialModel =
     , totalBalance = 0
     , totalMemberDebit = 0
     , memberPane = MemberPaneShowNone
+    , memberFilter = MemberFilterAll
     , selectedTab = 0
     }
 
@@ -216,6 +217,9 @@ update msg model =
 
                 _ ->
                     { model | memberPane = memberPane, member = Nothing, memberName = "" } ! []
+
+        FilterMembers memberFilter ->
+            { model | memberFilter = memberFilter } ! []
 
 
 updateMemberCmd : Member -> Cmd msg

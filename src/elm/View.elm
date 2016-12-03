@@ -167,16 +167,59 @@ memberActionsView model =
 
 memberListView : Model -> Html Msg
 memberListView model =
-    table [ class "table is-striped " ]
-        [ thead []
-            [ tr []
-                [ th [] [ text "Name" ]
-                , th [] [ text "Balance" ]
-                , th [] [ text "" ]
+    let
+        members =
+            List.filter
+                (\member ->
+                    case model.memberFilter of
+                        MemberFilterAll ->
+                            True
+
+                        MemberFilterActive ->
+                            member.active
+
+                        MemberFilterInactive ->
+                            not member.active
+                )
+                model.members
+    in
+        table [ class "table is-striped " ]
+            [ thead []
+                [ tr []
+                    [ th [] [ text "Name" ]
+                    , th [] [ text "Balance" ]
+                    , th []
+                        [ div [ class "control is-grouped" ]
+                            [ p [ class "control" ]
+                                [ button
+                                    [ class "button"
+                                    , classList [ ( "is-active", model.memberFilter == MemberFilterAll ) ]
+                                    , onClick <| FilterMembers MemberFilterAll
+                                    ]
+                                    [ text "All" ]
+                                ]
+                            , p [ class "control" ]
+                                [ button
+                                    [ class "button"
+                                    , classList [ ( "is-active", model.memberFilter == MemberFilterActive ) ]
+                                    , onClick <| FilterMembers MemberFilterActive
+                                    ]
+                                    [ text "Active" ]
+                                ]
+                            , p [ class "control" ]
+                                [ button
+                                    [ class "button"
+                                    , classList [ ( "is-active", model.memberFilter == MemberFilterInactive ) ]
+                                    , onClick <| FilterMembers MemberFilterInactive
+                                    ]
+                                    [ text "Inactive" ]
+                                ]
+                            ]
+                        ]
+                    ]
                 ]
+            , tbody [] <| List.map (memberItemView model) members
             ]
-        , tbody [] <| List.map (memberItemView model) model.members
-        ]
 
 
 memberItemView : Model -> Member -> Html Msg

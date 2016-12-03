@@ -20,6 +20,12 @@ type MemberPane
     | MemberPaneAddMember
 
 
+type MemberFilter
+    = MemberFilterAll
+    | MemberFilterActive
+    | MemberFilterInactive
+
+
 type alias Month =
     { month : Date.Month
     , year : Int
@@ -53,6 +59,7 @@ type alias Model =
     , totalBalance : Float
     , totalMemberDebit : Float
     , memberPane : MemberPane
+    , memberFilter : MemberFilter
     , selectedTab : Int
     }
 
@@ -82,6 +89,7 @@ type Msg
     | DeleteLineItem LineItem
     | SelectTab Int
     | ChangeMemberPane MemberPane
+    | FilterMembers MemberFilter
 
 
 months : List Date.Month
