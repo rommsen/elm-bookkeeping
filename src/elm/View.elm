@@ -94,16 +94,6 @@ viewBody model =
             text "404"
 
 
-modelView : Model -> Html Msg
-modelView model =
-    div [ class "tile is-ancestor" ]
-        [ div [ class "tile is-parent" ]
-            [ div [ class "tile is-child box" ]
-                [ span [] [ text (toString model) ] ]
-            ]
-        ]
-
-
 membersView : Model -> Html Msg
 membersView model =
     section [ class "section" ]
@@ -119,7 +109,6 @@ membersView model =
                     [ memberPaneView model
                     ]
                 ]
-            , modelView model
             ]
         ]
 
@@ -140,7 +129,6 @@ lineItemsView model =
                         ]
                     ]
                 ]
-            , modelView model
             ]
         ]
 
