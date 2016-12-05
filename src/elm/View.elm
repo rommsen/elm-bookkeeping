@@ -19,7 +19,7 @@ view model =
 
 viewHeader : Model -> Html Msg
 viewHeader model =
-    section [ class "hero  is-primary" ]
+    section [ class "hero is-info" ]
         [ div [ class "hero-head" ]
             [ div [ class "container" ]
                 [ div [ class "nav" ]
@@ -34,25 +34,29 @@ viewHeader model =
                     [ div [ class "column" ]
                         [ div [ class "box" ]
                             [ div
-                                [ class "notification"
-                                , classList
-                                    [ ( "is-danger", model.totalBalance < 0 )
-                                    , ( "is-primary", model.totalBalance >= 0 )
+                                [ classList
+                                    [ ( "notification", True )
+                                    , ( "is-danger", model.totalBalance < 0 )
+                                    , ( "is-success", model.totalBalance >= 0 )
                                     ]
                                 ]
-                                [ p [ class "title" ] [ text <| "Balance:  " ++ toString model.totalBalance ++ "€" ] ]
+                                [ p [ class "title is-4" ]
+                                    [ text <| "Balance:  " ++ toString model.totalBalance ++ "€" ]
+                                ]
                             ]
                         ]
                     , div [ class "column" ]
                         [ div [ class "box" ]
                             [ div
-                                [ class "notification"
-                                , classList
-                                    [ ( "is-danger", model.totalMemberDebit < 0 )
-                                    , ( "is-primary", model.totalMemberDebit >= 0 )
+                                [ classList
+                                    [ ( "notification", True )
+                                    , ( "is-danger", model.totalMemberDebit < 0 )
+                                    , ( "is-success", model.totalMemberDebit >= 0 )
                                     ]
                                 ]
-                                [ p [ class "title" ] [ text <| "Member:  " ++ toString model.totalMemberDebit ++ "€" ] ]
+                                [ p [ class "title is-4" ]
+                                    [ text <| "Members:  " ++ toString model.totalMemberDebit ++ "€" ]
+                                ]
                             ]
                         ]
                     ]
@@ -66,13 +70,19 @@ viewHeader model =
                             [ classList [ ( "is-active", model.selectedTab == 0 ) ]
                             , onClick <| SelectTab 0
                             ]
-                            [ a [] [ text "Members" ]
+                            [ a []
+                                [ span [ class "icon" ] [ i [ class "fa fa-users" ] [] ]
+                                , span [] [ text "Members" ]
+                                ]
                             ]
                         , li
                             [ classList [ ( "is-active", model.selectedTab == 1 ) ]
                             , onClick <| SelectTab 1
                             ]
-                            [ a [] [ text "LineItems" ]
+                            [ a []
+                                [ span [ class "icon" ] [ i [ class "fa fa-list" ] [] ]
+                                , span [] [ text "Line Items" ]
+                                ]
                             ]
                         ]
                     ]
@@ -141,14 +151,21 @@ memberActionsView model =
                 [ class "button is-primary"
                 , onClick <| ChangeMemberPane MemberPaneAddMember
                 ]
-                [ text "Add Member" ]
+                [ span [ class "icon" ]
+                    [ i [ class "fa fa-plus-circle" ] []
+                    ]
+                , span [] [ text "Add member" ]
+                ]
             ]
         , p [ class "control" ]
             [ button
                 [ class "button is-primary"
                 , onClick <| ChangeMemberPane MemberPaneAddMonth
                 ]
-                [ text "Add Month" ]
+                [ span [ class "icon" ]
+                    [ i [ class "fa fa-plus-circle" ] [] ]
+                , span [] [ text "Add month to active members" ]
+                ]
             ]
         ]
 
@@ -171,37 +188,52 @@ memberListView model =
                 )
                 model.members
     in
-        table [ class "table is-striped " ]
+        {-
+           <p class="control has-addons has-addons-centered">
+             <span class="select">
+               <select>
+                 <option>$</option>
+                 <option>£</option>
+                 <option>€</option>
+               </select>
+             </span>
+             <input class="input" type="text" placeholder="Amount of money">
+             <a class="button is-primary">
+               Transfer
+             </a>
+           </p>
+        -}
+        table [ class "table" ]
             [ thead []
                 [ tr []
                     [ th [] [ text "Name" ]
                     , th [] [ text "Balance" ]
                     , th []
-                        [ div [ class "control is-grouped" ]
-                            [ p [ class "control" ]
-                                [ button
-                                    [ class "button"
-                                    , classList [ ( "is-active", model.memberFilter == MemberFilterAll ) ]
-                                    , onClick <| FilterMembers MemberFilterAll
-                                    ]
-                                    [ text "All" ]
+                        [ div [ class "control has-addons" ]
+                            [ button
+                                [ class "button is-disabled" ]
+                                [ span [ class "icon" ]
+                                    [ i [ class "fa fa-filter is-small" ] [] ]
+                                , span [] [ text "" ]
                                 ]
-                            , p [ class "control" ]
-                                [ button
-                                    [ class "button"
-                                    , classList [ ( "is-active", model.memberFilter == MemberFilterActive ) ]
-                                    , onClick <| FilterMembers MemberFilterActive
-                                    ]
-                                    [ text "Active" ]
+                            , button
+                                [ class "button"
+                                , classList [ ( "is-info", model.memberFilter == MemberFilterAll ) ]
+                                , onClick <| FilterMembers MemberFilterAll
                                 ]
-                            , p [ class "control" ]
-                                [ button
-                                    [ class "button"
-                                    , classList [ ( "is-active", model.memberFilter == MemberFilterInactive ) ]
-                                    , onClick <| FilterMembers MemberFilterInactive
-                                    ]
-                                    [ text "Inactive" ]
+                                [ text "All" ]
+                            , button
+                                [ class "button"
+                                , classList [ ( "is-info", model.memberFilter == MemberFilterActive ) ]
+                                , onClick <| FilterMembers MemberFilterActive
                                 ]
+                                [ text "Active" ]
+                            , button
+                                [ class "button"
+                                , classList [ ( "is-info", model.memberFilter == MemberFilterInactive ) ]
+                                , onClick <| FilterMembers MemberFilterInactive
+                                ]
+                                [ text "Inactive" ]
                             ]
                         ]
                     ]
@@ -212,35 +244,50 @@ memberListView model =
 
 memberItemView : Model -> Member -> Html Msg
 memberItemView model member =
-    let
-        active =
-            if member.active then
-                "Deaktivieren"
-            else
-                "Aktivieren"
-    in
-        tr []
-            [ td [] [ text member.name ]
-            , td [] [ text <| toString (memberBalance member) ++ " €" ]
-            , td []
-                [ div [ class "control is-grouped" ]
-                    [ p [ class "control" ]
-                        [ button
-                            [ class "button is-primary is-inverted"
-                            , onClick <| ChangeMemberPane <| MemberPaneShowDetails member
+    tr []
+        [ td [] [ text member.name ]
+        , td [] [ text <| toString (memberBalance member) ++ " €" ]
+        , td []
+            [ div [ class "control is-grouped" ]
+                [ p [ class "control" ]
+                    [ button
+                        [ classList
+                            [ ( "button", True )
+                            , ( "is-primary", True )
+                            , ( "is-inverted", Just member /= model.member )
                             ]
-                            [ text "Details" ]
+                        , onClick <| ChangeMemberPane <| MemberPaneShowDetails member
                         ]
-                    , p [ class "control" ]
-                        [ button
-                            [ class "button is-primary is-inverted"
-                            , onClick <| ToggleMemberIsActive member
+                        [ span [ class "icon" ]
+                            [ i [ class "fa fa-id-card-o" ] [] ]
+                        ]
+                    ]
+                , p [ class "control" ]
+                    [ button
+                        [ classList
+                            [ ( "button", True )
+                            , ( "is-inverted", True )
+                            , ( "fa", True )
+                            , ( "is-primary", member.active )
+                            , ( "is-danger", not member.active )
                             ]
-                            [ text active ]
+                        , onClick <| ToggleMemberIsActive member
+                        ]
+                        [ span [ class "icon" ]
+                            [ i
+                                [ classList
+                                    [ ( "fa", True )
+                                    , ( "fa-check", member.active )
+                                    , ( "fa-pause", not member.active )
+                                    ]
+                                ]
+                                []
+                            ]
                         ]
                     ]
                 ]
             ]
+        ]
 
 
 memberPaneView : Model -> Html Msg
@@ -295,7 +342,7 @@ memberPaymentListView : Member -> Html Msg
 memberPaymentListView member =
     div []
         [ h1 [ class "title" ] [ text "Payments" ]
-        , table [ class "table is-striped" ]
+        , table [ class "table" ]
             [ thead []
                 [ tr []
                     [ th [] [ text "Date" ]
@@ -328,7 +375,9 @@ memberPaymentItemView member payment =
                     [ class "button is-danger is-inverted"
                     , onClick <| DeleteMemberPayment member payment
                     ]
-                    [ text "Delete" ]
+                    [ span [ class "icon" ]
+                        [ i [ class "fa fa-trash-o" ] [] ]
+                    ]
                 ]
             ]
 
@@ -338,7 +387,7 @@ memberMonthListView member =
     div []
         [ h1 [ class "title" ]
             [ text "Active in month" ]
-        , table [ class "table is-striped " ]
+        , table [ class "table" ]
             [ thead []
                 [ tr []
                     [ th [] [ text "Name" ]
@@ -361,7 +410,9 @@ memberMonthItemView member month =
                 [ class "button is-danger is-inverted"
                 , onClick <| DeleteMonthFromMember month member
                 ]
-                [ text "Delete" ]
+                [ span [ class "icon" ]
+                    [ i [ class "fa fa-trash-o" ] [] ]
+                ]
             ]
         ]
 
@@ -461,7 +512,7 @@ monthForm model =
 
 lineItemListView : Model -> Html Msg
 lineItemListView model =
-    table [ class "table is-striped " ]
+    table [ class "table" ]
         [ thead []
             [ tr []
                 [ th [] [ text "Name" ]
@@ -480,19 +531,25 @@ lineItemView model lineItem =
         , td [] [ text <| toString lineItem.amount ++ " €" ]
         , td []
             [ div [ class "control is-grouped" ]
-                [ p [ class "control" ]
-                    [ button
-                        [ class "button is-primary is-inverted"
-                        , onClick <| SelectLineItem lineItem
+                [ button
+                    [ classList
+                        [ ( "button", True )
+                        , ( "is-primary", True )
+                        , ( "is-inverted", Just lineItem /= model.lineItem )
                         ]
-                        [ text "Change" ]
+                    , onClick <| SelectLineItem lineItem
+                    ]
+                    [ span [ class "icon" ]
+                        [ i [ class "fa fa-pencil-square-o" ] [] ]
                     ]
                 , p [ class "control" ]
                     [ button
                         [ class "button is-danger is-inverted"
                         , onClick <| DeleteLineItem lineItem
                         ]
-                        [ text "Delete" ]
+                        [ span [ class "icon" ]
+                            [ i [ class "fa fa-trash-o" ] [] ]
+                        ]
                     ]
                 ]
             ]
