@@ -73,6 +73,7 @@ type Msg
     | InputMemberPaymentAmount String
     | CreateMemberPayment
     | SaveMemberPayment Member Payment
+    | DeleteMemberPayment Member Payment
     | SelectMonth Date.Month
     | InputMonthYear String
     | InputMonthAmount String

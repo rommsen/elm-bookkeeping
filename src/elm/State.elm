@@ -97,6 +97,9 @@ update msg model =
         SaveMemberPayment member payment ->
             ( model, updateMemberCmd { member | payments = payment :: member.payments } )
 
+        DeleteMemberPayment member payment ->
+            ( model, updateMemberCmd { member | payments = deleteFromList payment member.payments } )
+
         InputMemberPaymentAmount amount ->
             case String.toFloat amount of
                 Ok val ->
@@ -137,7 +140,7 @@ update msg model =
                 model ! cmds
 
         DeleteMonthFromMember month member ->
-            ( model, updateMemberCmd { member | months = deleteMonthFromList month member.months } )
+            ( model, updateMemberCmd { member | months = deleteFromList month member.months } )
 
         SelectLineItem lineItem ->
             { model | lineItem = Just lineItem, lineItemName = lineItem.name, lineItemAmount = lineItem.amount } ! []
@@ -237,14 +240,14 @@ memberHasMonth member month =
     List.any (monthEquals month) member.months
 
 
-deleteMonthFromList : Month -> List Month -> List Month
-deleteMonthFromList month list =
-    List.filter (not << (monthEquals month)) list
+deleteFromList : a -> List a -> List a
+deleteFromList toDelete list =
+    List.filter ((/=) toDelete) list
 
 
 monthEquals : Month -> Month -> Bool
 monthEquals a b =
-    ( a.month, a.year ) == ( b.month, b.year )
+    a == b
 
 
 deleteLineItemFromList : LineItem -> List LineItem -> List LineItem

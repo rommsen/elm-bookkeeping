@@ -312,6 +312,7 @@ memberPaymentListView member =
                 [ tr []
                     [ th [] [ text "Date" ]
                     , th [] [ text "Amount" ]
+                    , th [] [ text "" ]
                     ]
                 ]
             , tbody [] <| List.map (memberPaymentItemView member) member.payments
@@ -334,6 +335,13 @@ memberPaymentItemView member payment =
         tr []
             [ td [] [ text <| toString day ++ "." ++ toString month ++ "." ++ toString year ]
             , td [] [ text <| toString payment.amount ++ " €" ]
+            , td []
+                [ button
+                    [ class "button is-danger is-inverted"
+                    , onClick <| DeleteMemberPayment member payment
+                    ]
+                    [ text "Delete" ]
+                ]
             ]
 
 
