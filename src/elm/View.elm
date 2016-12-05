@@ -536,11 +536,20 @@ lineItemForm model =
                 ]
                 []
             ]
-        , p [ class "control" ]
-            [ button
-                [ class "button is-primary"
-                , type_ "submit"
+        , div [ class "control is-grouped" ]
+            [ p [ class "control" ]
+                [ button
+                    [ class "button is-primary"
+                    , type_ "submit"
+                    ]
+                    [ text "Save line item" ]
                 ]
-                [ text "Save line item" ]
+            , p [ class "control" ]
+                [ button
+                    [ class "button is-link"
+                    , onClick CancelLineItem
+                    ]
+                    [ text "Cancel" ]
+                ]
             ]
         ]
