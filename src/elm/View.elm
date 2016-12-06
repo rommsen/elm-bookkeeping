@@ -67,8 +67,8 @@ viewHeader model =
                 [ nav [ class "tabs is-boxed is-medium" ]
                     [ ul []
                         [ li
-                            [ classList [ ( "is-active", model.selectedTab == 0 ) ]
-                            , onClick <| SelectTab 0
+                            [ classList [ ( "is-active", model.selectedTab == MemberTab ) ]
+                            , onClick <| SelectTab MemberTab
                             ]
                             [ a []
                                 [ span [ class "icon" ] [ i [ class "fa fa-users" ] [] ]
@@ -76,8 +76,8 @@ viewHeader model =
                                 ]
                             ]
                         , li
-                            [ classList [ ( "is-active", model.selectedTab == 1 ) ]
-                            , onClick <| SelectTab 1
+                            [ classList [ ( "is-active", model.selectedTab == LineItemTab ) ]
+                            , onClick <| SelectTab LineItemTab
                             ]
                             [ a []
                                 [ span [ class "icon" ] [ i [ class "fa fa-list" ] [] ]
@@ -94,14 +94,11 @@ viewHeader model =
 viewBody : Model -> Html Msg
 viewBody model =
     case model.selectedTab of
-        0 ->
+        MemberTab ->
             membersView model
 
-        1 ->
+        LineItemTab ->
             lineItemsView model
-
-        _ ->
-            text "404"
 
 
 membersView : Model -> Html Msg
@@ -188,21 +185,6 @@ memberListView model =
                 )
                 model.members
     in
-        {-
-           <p class="control has-addons has-addons-centered">
-             <span class="select">
-               <select>
-                 <option>$</option>
-                 <option>£</option>
-                 <option>€</option>
-               </select>
-             </span>
-             <input class="input" type="text" placeholder="Amount of money">
-             <a class="button is-primary">
-               Transfer
-             </a>
-           </p>
-        -}
         table [ class "table" ]
             [ thead []
                 [ tr []

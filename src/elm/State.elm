@@ -22,7 +22,7 @@ initialModel =
     , totalMemberDebit = 0
     , memberPane = MemberPaneShowNone
     , memberFilter = MemberFilterAll
-    , selectedTab = 0
+    , selectedTab = MemberTab
     }
 
 
@@ -210,8 +210,8 @@ update msg model =
                 Err err ->
                     model ! []
 
-        SelectTab num ->
-            { model | selectedTab = num } ! []
+        SelectTab tab ->
+            { model | selectedTab = tab } ! []
 
         ChangeMemberPane memberPane ->
             case memberPane of

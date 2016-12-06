@@ -60,8 +60,13 @@ type alias Model =
     , totalMemberDebit : Float
     , memberPane : MemberPane
     , memberFilter : MemberFilter
-    , selectedTab : Int
+    , selectedTab : Tab
     }
+
+
+type Tab
+    = MemberTab
+    | LineItemTab
 
 
 type Msg
@@ -88,7 +93,7 @@ type Msg
     | LineItemUpdated JD.Value
     | LineItemDeleted JD.Value
     | DeleteLineItem LineItem
-    | SelectTab Int
+    | SelectTab Tab
     | ChangeMemberPane MemberPane
     | FilterMembers MemberFilter
 
