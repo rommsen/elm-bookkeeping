@@ -1,6 +1,7 @@
 module Types exposing (..)
 
 import Date
+import Dict
 import Json.Decode as JD
 
 
@@ -33,6 +34,23 @@ type alias Month =
     }
 
 
+type alias MonthForm =
+    { month : Date.Month
+    , year : String
+    , amount : String
+    , errors : FormErrors
+    , monthResult : Maybe Month
+    }
+
+
+type alias FormErrors =
+    Dict.Dict String (Maybe String)
+
+
+type alias FormError =
+    ( String, Maybe String )
+
+
 type alias Payment =
     { amount : Float
     , added : Date.Date
@@ -51,7 +69,7 @@ type alias Model =
     , member : Maybe Member
     , memberName : String
     , memberPayment : Float
-    , month : Month
+    , monthForm : MonthForm
     , lineItems : List LineItem
     , lineItem : Maybe LineItem
     , lineItemName : String

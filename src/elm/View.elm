@@ -3,6 +3,7 @@ module View exposing (view)
 import Rest exposing (..)
 import Types exposing (..)
 import Date
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -298,7 +299,7 @@ memberPaneView model =
         MemberPaneAddMonth ->
             div [ class "tile is-child box" ]
                 [ memberDetailsHeaderView model "Add month"
-                , monthForm model
+                , monthForm model.monthForm
                 ]
 
         MemberPaneAddMember ->
@@ -448,48 +449,67 @@ memberForm model =
 
 monthOption : a -> Html msg
 monthOption month =
-    option [ value (toString month) ] [ text (toString month) ]
+    option [ value <| toString month ] [ text <| toString month ]
 
 
-monthForm : Model -> Html Msg
-monthForm model =
-    Html.form [ onSubmit AddMonthToActiveMembers ]
-        [ label [ class "label" ] [ text "Month" ]
-        , p [ class "control" ]
-            [ span [ class "select" ]
-                [ select
-                    [ on "change" (JD.map SelectMonth monthSelectDecoder) ]
-                    (List.map monthOption months)
+monthForm : MonthForm -> Html Msg
+monthForm form =
+    let
+        yearError =
+            getFormError "year" form.errors
+
+        amountError =
+            getFormError "amount" form.errors
+
+        monthSelect =
+            wrapFormElement "Month" Nothing <|
+                span [ class "select" ]
+                    [ select
+                        [ on "change" <| JD.map SelectMonth monthSelectDecoder ]
+                        (List.map monthOption months)
+                    ]
+
+        yearInput =
+            wrapFormElement "Year" yearError <|
+                input
+                    [ type_ "text"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", yearError /= Nothing )
+                        ]
+                    , onInput InputMonthYear
+                    , placeholder "Year"
+                    , value form.year
+                    ]
+                    []
+
+        amountInput =
+            wrapFormElement "Amount" amountError <|
+                input
+                    [ type_ "text"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", amountError /= Nothing )
+                        ]
+                    , onInput InputMonthAmount
+                    , placeholder "Amount"
+                    , value form.amount
+                    ]
+                    []
+
+        submitButton =
+            p [ class "control" ]
+                [ button [ type_ "submit", class "button is-primary" ]
+                    [ text "Add month to active members"
+                    ]
                 ]
+    in
+        Html.form [ onSubmit AddMonthToActiveMembers ]
+            [ monthSelect
+            , yearInput
+            , amountInput
+            , submitButton
             ]
-        , label [ class "label" ] [ text "Year" ]
-        , p [ class "control" ]
-            [ input
-                [ type_ "text"
-                , class "input"
-                , onInput InputMonthYear
-                , placeholder "Year"
-                , value <| toString model.month.year
-                ]
-                []
-            ]
-        , label [ class "label" ] [ text "Amount" ]
-        , p [ class "control" ]
-            [ input
-                [ type_ "text"
-                , class "input"
-                , onInput InputMonthAmount
-                , placeholder "Amount"
-                , value <| toString model.month.amount
-                ]
-                []
-            ]
-        , p [ class "control" ]
-            [ button [ type_ "submit", class "button is-primary" ]
-                [ text "Add month to active members"
-                ]
-            ]
-        ]
 
 
 lineItemListView : Model -> Html Msg
@@ -580,3 +600,35 @@ lineItemForm model =
                 ]
             ]
         ]
+
+
+wrapFormElement : String -> Maybe String -> Html Msg -> Html Msg
+wrapFormElement elementLabel elementError element =
+    let
+        withError =
+            case elementError of
+                Just error ->
+                    [ element
+                    , i [ class "fa fa-warning" ] []
+                    , span [ class "help is-danger" ] [ text error ]
+                    ]
+
+                Nothing ->
+                    [ element ]
+    in
+        div [ class "control" ]
+            [ label [ class "label" ] [ text elementLabel ]
+            , p
+                [ classList
+                    [ ( "control", True )
+                    , ( "has-icon", elementError /= Nothing )
+                    , ( "has-icon-right", elementError /= Nothing )
+                    ]
+                ]
+                withError
+            ]
+
+
+getFormError : String -> Dict.Dict String (Maybe String) -> Maybe String
+getFormError key errors =
+    Maybe.withDefault Nothing (Dict.get key errors)

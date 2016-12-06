@@ -3,6 +3,7 @@ port module State exposing (init, subscriptions, update)
 import Rest exposing (..)
 import Types exposing (..)
 import Date
+import Dict
 import Json.Decode as JD
 import Task
 
@@ -12,7 +13,7 @@ initialModel =
     { members = []
     , member = Nothing
     , memberName = ""
-    , month = Month Date.Jan 2016 7.5
+    , monthForm = MonthForm Date.Jan "2016" "7.5" Dict.empty Nothing
     , memberPayment = 0
     , lineItems = []
     , lineItem = Nothing
@@ -110,34 +111,41 @@ update msg model =
 
         SelectMonth newMonth ->
             case model of
-                { month } ->
-                    { model | month = { month | month = newMonth } } ! []
+                { monthForm } ->
+                    { model | monthForm = validateMonthForm { monthForm | month = newMonth } } ! []
 
         InputMonthYear year ->
-            case ( String.toInt year, model ) of
-                ( Ok val, { month } ) ->
-                    { model | month = { month | year = val } } ! []
-
-                ( Err bla, _ ) ->
-                    model ! []
+            let
+                monthForm =
+                    model.monthForm
+            in
+                { model | monthForm = validateMonthForm { monthForm | year = year } } ! []
 
         InputMonthAmount amount ->
-            case ( String.toFloat amount, model ) of
-                ( Ok val, { month } ) ->
-                    { model | month = { month | amount = val } } ! []
-
-                ( Err bla, _ ) ->
-                    model ! []
+            let
+                monthForm =
+                    model.monthForm
+            in
+                { model | monthForm = validateMonthForm { monthForm | amount = amount } } ! []
 
         AddMonthToActiveMembers ->
             let
-                cmds =
-                    model.members
-                        |> List.filter (\m -> m.active == True && not (memberHasMonth m model.month))
-                        |> List.map (\m -> { m | months = model.month :: m.months })
-                        |> List.map updateMemberCmd
+                monthForm =
+                    validateMonthForm model.monthForm
             in
-                model ! cmds
+                case monthForm.monthResult of
+                    Just month ->
+                        let
+                            cmds =
+                                model.members
+                                    |> List.filter (\m -> m.active == True && not (memberHasMonth m month))
+                                    |> List.map (\m -> { m | months = month :: m.months })
+                                    |> List.map updateMemberCmd
+                        in
+                            model ! cmds
+
+                    Nothing ->
+                        { model | monthForm = monthForm } ! []
 
         DeleteMonthFromMember month member ->
             ( model, updateMemberCmd { member | months = deleteFromList month member.months } )
@@ -275,6 +283,54 @@ withSummaries model =
             | totalBalance = memberPaymentsTotal + lineItemTotal
             , totalMemberDebit = memberPaymentsTotal - memberDebitTotal
         }
+
+
+validateMonthForm : MonthForm -> MonthForm
+validateMonthForm form =
+    let
+        validators =
+            [ .amount >> validateFloat "amount"
+            , .year >> validateInt "year"
+            ]
+    in
+        { form
+            | errors =
+                form
+                    |> validateAll validators
+                    |> Dict.fromList
+            , monthResult =
+                Result.toMaybe <| Result.map2 (Month form.month) (String.toInt form.year) (String.toFloat form.amount)
+        }
+
+
+validate : (a -> b) -> a -> b
+validate validator record =
+    validator record
+
+
+validateAll : List (a -> b) -> a -> List b
+validateAll validators record =
+    List.map (\validator -> validator record) validators
+
+
+validateFloat : String -> String -> FormError
+validateFloat name string =
+    case String.toFloat string of
+        Ok _ ->
+            ( name, Nothing )
+
+        Err _ ->
+            ( name, Just "This is not a valid number" )
+
+
+validateInt : String -> String -> FormError
+validateInt name string =
+    case String.toInt string of
+        Ok _ ->
+            ( name, Nothing )
+
+        Err _ ->
+            ( name, Just "This is not a valid number" )
 
 
 
