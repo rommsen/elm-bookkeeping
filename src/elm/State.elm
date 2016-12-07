@@ -17,8 +17,7 @@ initialModel =
     , memberPayment = 0
     , lineItems = []
     , lineItem = Nothing
-    , lineItemName = ""
-    , lineItemAmount = 0
+    , lineItemForm = emptyLineItemForm
     , totalBalance = 0
     , totalMemberDebit = 0
     , memberPane = MemberPaneShowNone
@@ -133,13 +132,13 @@ update msg model =
                 monthForm =
                     validateMonthForm model.monthForm
             in
-                case monthForm.monthResult of
-                    Just month ->
+                case monthForm.result of
+                    Just result ->
                         let
                             cmds =
                                 model.members
-                                    |> List.filter (\m -> m.active == True && not (memberHasMonth m month))
-                                    |> List.map (\m -> { m | months = month :: m.months })
+                                    |> List.filter (\month -> month.active == True && not (memberHasMonth month result))
+                                    |> List.map (\month -> { month | months = result :: month.months })
                                     |> List.map updateMemberCmd
                         in
                             model ! cmds
@@ -151,26 +150,31 @@ update msg model =
             ( model, updateMemberCmd { member | months = deleteFromList month member.months } )
 
         SelectLineItem lineItem ->
-            { model | lineItem = Just lineItem, lineItemName = lineItem.name, lineItemAmount = lineItem.amount } ! []
+            { model | lineItem = Just lineItem, lineItemForm = lineItemFormFromLineItem lineItem } ! []
 
         CancelLineItem ->
-            { model | lineItem = Nothing, lineItemName = "", lineItemAmount = 0 } ! []
+            { model | lineItem = Nothing, lineItemForm = emptyLineItemForm } ! []
 
         InputLineItemName name ->
-            { model | lineItemName = name } ! []
+            let
+                form =
+                    model.lineItemForm
+            in
+                { model | lineItemForm = validateLineItemForm { form | name = name } }
+                    ! []
 
         InputLineItemAmount amount ->
-            case String.toFloat amount of
-                Ok val ->
-                    { model | lineItemAmount = val } ! []
-
-                Err bla ->
-                    model ! []
+            let
+                form =
+                    model.lineItemForm
+            in
+                { model | lineItemForm = validateLineItemForm { form | amount = amount } }
+                    ! []
 
         LineItemAdded value ->
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
-                    withSummaries { model | lineItems = lineItem :: model.lineItems, lineItemAmount = 0, lineItemName = "" } ! []
+                    withSummaries { model | lineItems = lineItem :: model.lineItems, lineItemForm = emptyLineItemForm } ! []
 
                 Err err ->
                     model ! []
@@ -197,15 +201,21 @@ update msg model =
                     model ! []
 
         SaveLineItem ->
-            if (String.isEmpty model.lineItemName) then
-                model ! []
-            else
-                case model.lineItem of
-                    Just lineItem ->
-                        ( model, updateLineItemCmd { lineItem | name = model.lineItemName, amount = model.lineItemAmount } )
+            let
+                lineItemForm =
+                    validateLineItemForm model.lineItemForm
+            in
+                case lineItemForm.result of
+                    Just result ->
+                        case model.lineItem of
+                            Just lineItem ->
+                                ( model, updateLineItemCmd { lineItem | name = result.name, amount = result.amount } )
+
+                            Nothing ->
+                                ( model, addLineItem <| lineItemEncoder <| newLineItem result.name result.amount )
 
                     Nothing ->
-                        ( model, addLineItem <| lineItemEncoder <| newLineItem model.lineItemName model.lineItemAmount )
+                        { model | lineItemForm = lineItemForm } ! []
 
         DeleteLineItem lineItem ->
             ( model, deleteLineItem <| lineItemEncoder lineItem )
@@ -294,12 +304,25 @@ validateMonthForm form =
             ]
     in
         { form
-            | errors =
-                form
-                    |> validateAll validators
-                    |> Dict.fromList
-            , monthResult =
-                Result.toMaybe <| Result.map2 (Month form.month) (String.toInt form.year) (String.toFloat form.amount)
+            | errors = Dict.fromList <| validateAll validators form
+            , result = Result.toMaybe <| Result.map2 (Month form.month) (String.toInt form.year) (String.toFloat form.amount)
+        }
+
+
+validateLineItemForm : LineItemForm -> LineItemForm
+validateLineItemForm form =
+    let
+        validators =
+            [ .amount >> validateFloat "amount"
+            , .name >> validateNotBlank "name"
+            ]
+
+        errors =
+            Dict.fromList <| validateAll validators form
+    in
+        { form
+            | errors = errors
+            , result = Result.toMaybe <| Result.map2 (LineItem "") (stringNotBlankResult form.name) (String.toFloat form.amount)
         }
 
 
@@ -311,6 +334,24 @@ validate validator record =
 validateAll : List (a -> b) -> a -> List b
 validateAll validators record =
     List.map (\validator -> validator record) validators
+
+
+validateNotBlank : String -> String -> FormError
+validateNotBlank name string =
+    case stringNotBlankResult string of
+        Ok _ ->
+            ( name, Nothing )
+
+        Err _ ->
+            ( name, Just "This should not be empty" )
+
+
+stringNotBlankResult : String -> Result String String
+stringNotBlankResult string =
+    if String.isEmpty string then
+        Err "string is empty"
+    else
+        Ok string
 
 
 validateFloat : String -> String -> FormError

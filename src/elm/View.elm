@@ -133,7 +133,7 @@ lineItemsView model =
                 , div [ class "tile is-parent" ]
                     [ div [ class "tile is-child box" ]
                         [ h1 [ class "title" ] [ text "Line Item" ]
-                        , lineItemForm model
+                        , lineItemForm model.lineItemForm
                         ]
                     ]
                 ]
@@ -558,48 +558,66 @@ lineItemView model lineItem =
         ]
 
 
-lineItemForm : Model -> Html Msg
-lineItemForm model =
-    Html.form [ onSubmit SaveLineItem ]
-        [ label [ class "label" ] [ text "Name" ]
-        , p [ class "control" ]
-            [ input
-                [ type_ "text"
-                , class "input"
-                , onInput InputLineItemName
-                , placeholder "Name"
-                , value <| model.lineItemName
-                ]
-                []
-            ]
-        , label [ class "label" ] [ text "Amount" ]
-        , p [ class "control" ]
-            [ input
-                [ type_ "text"
-                , class "input"
-                , onInput InputLineItemAmount
-                , placeholder "Amount"
-                , value <| toString model.lineItemAmount
-                ]
-                []
-            ]
-        , div [ class "control is-grouped" ]
-            [ p [ class "control" ]
-                [ button
-                    [ class "button is-primary"
-                    , type_ "submit"
+lineItemForm : LineItemForm -> Html Msg
+lineItemForm form =
+    let
+        nameError =
+            getFormError "name" form.errors
+
+        amountError =
+            getFormError "amount" form.errors
+
+        nameInput =
+            wrapFormElement "Name" nameError <|
+                input
+                    [ type_ "text"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", nameError /= Nothing )
+                        ]
+                    , onInput InputLineItemName
+                    , placeholder "Name"
+                    , value form.name
                     ]
-                    [ text "Save line item" ]
-                ]
-            , p [ class "control" ]
-                [ button
-                    [ class "button is-link"
-                    , onClick CancelLineItem
+                    []
+
+        amountInput =
+            wrapFormElement "Amount" amountError <|
+                input
+                    [ type_ "text"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", amountError /= Nothing )
+                        ]
+                    , onInput InputLineItemAmount
+                    , placeholder "Amount"
+                    , value form.amount
                     ]
-                    [ text "Cancel" ]
+                    []
+
+        submitButton =
+            button
+                [ type_ "submit"
+                , class "button is-primary"
+                ]
+                [ text "Save line item" ]
+
+        {- I need to make this a link otherwise the form gets submitted... -}
+        cancelButton =
+            a
+                [ class "button is-link"
+                , onClick CancelLineItem
+                ]
+                [ text "Cancel" ]
+    in
+        Html.form [ onSubmit SaveLineItem ]
+            [ nameInput
+            , amountInput
+            , div [ class "control is-grouped" ]
+                [ submitButton
+                , cancelButton
                 ]
             ]
-        ]
 
 
 wrapFormElement : String -> Maybe String -> Html Msg -> Html Msg

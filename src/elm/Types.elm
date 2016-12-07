@@ -39,7 +39,7 @@ type alias MonthForm =
     , year : String
     , amount : String
     , errors : FormErrors
-    , monthResult : Maybe Month
+    , result : Maybe Month
     }
 
 
@@ -64,6 +64,14 @@ type alias LineItem =
     }
 
 
+type alias LineItemForm =
+    { name : String
+    , amount : String
+    , errors : FormErrors
+    , result : Maybe LineItem
+    }
+
+
 type alias Model =
     { members : List Member
     , member : Maybe Member
@@ -72,8 +80,7 @@ type alias Model =
     , monthForm : MonthForm
     , lineItems : List LineItem
     , lineItem : Maybe LineItem
-    , lineItemName : String
-    , lineItemAmount : Float
+    , lineItemForm : LineItemForm
     , totalBalance : Float
     , totalMemberDebit : Float
     , memberPane : MemberPane
@@ -124,6 +131,16 @@ months =
 newLineItem : String -> Float -> LineItem
 newLineItem name amount =
     LineItem "" name amount
+
+
+emptyLineItemForm : LineItemForm
+emptyLineItemForm =
+    LineItemForm "" "" Dict.empty Nothing
+
+
+lineItemFormFromLineItem : LineItem -> LineItemForm
+lineItemFormFromLineItem lineItem =
+    LineItemForm lineItem.name (toString lineItem.amount) Dict.empty Nothing
 
 
 memberWithName : String -> Member
