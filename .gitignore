@@ -8,3 +8,4 @@ repl-temp-*
 .idea
 
 /node_modules/
+/dist/
