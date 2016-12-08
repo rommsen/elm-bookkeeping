@@ -50,11 +50,20 @@ update msg model =
 
         MemberAdded value ->
             case JD.decodeValue memberDecoder value of
-                Ok member ->
-                    { model | members = member :: model.members } ! []
+                Ok newMember ->
+                    { model
+                        | members = newMember :: model.members
+                        , memberPane = MemberPaneShowNone
+                        , member = Nothing
+                    }
+                        ! []
 
                 Err err ->
-                    model ! []
+                    let
+                        _ =
+                            Debug.crash err
+                    in
+                        model ! []
 
         MemberUpdated value ->
             case JD.decodeValue memberDecoder value of
@@ -77,7 +86,11 @@ update msg model =
                         newModel ! []
 
                 Err err ->
-                    model ! []
+                    let
+                        _ =
+                            Debug.crash err
+                    in
+                        model ! []
 
         ToggleMemberIsActive member ->
             ( model, updateMemberCmd { member | active = not <| member.active } )
@@ -177,7 +190,11 @@ update msg model =
                     withSummaries { model | lineItems = lineItem :: model.lineItems, lineItemForm = emptyLineItemForm } ! []
 
                 Err err ->
-                    model ! []
+                    let
+                        _ =
+                            Debug.crash err
+                    in
+                        model ! []
 
         LineItemUpdated value ->
             case JD.decodeValue lineItemDecoder value of
@@ -198,7 +215,11 @@ update msg model =
                         withSummaries newModel ! []
 
                 Err err ->
-                    model ! []
+                    let
+                        _ =
+                            Debug.crash err
+                    in
+                        model ! []
 
         SaveLineItem ->
             let
@@ -226,7 +247,11 @@ update msg model =
                     withSummaries { model | lineItems = deleteLineItemFromList lineItem model.lineItems } ! []
 
                 Err err ->
-                    model ! []
+                    let
+                        _ =
+                            Debug.crash err
+                    in
+                        model ! []
 
         SelectTab tab ->
             { model | selectedTab = tab } ! []
