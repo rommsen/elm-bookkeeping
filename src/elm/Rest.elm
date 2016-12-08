@@ -2,6 +2,7 @@ module Rest exposing (..)
 
 import Types exposing (..)
 import Date
+import Date.Extra.Format
 import Html.Events exposing (targetValue)
 import Json.Decode.Pipeline
 import Json.Decode as JD
@@ -134,7 +135,7 @@ paymentEncoder : Payment -> JE.Value
 paymentEncoder payment =
     JE.object
         [ ( "amount", JE.float <| payment.amount )
-        , ( "added", JE.string <| toString payment.added )
+        , ( "added", JE.string <| Date.Extra.Format.isoString payment.added )
         ]
 
 
