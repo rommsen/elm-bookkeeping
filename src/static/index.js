@@ -1,18 +1,18 @@
-// pull in desired CSS/SASS files
-require( './styles/bulma.css' );
-require("font-awesome-webpack");
+import "babel-polyfill";
+import "./styles/bulma.css";
+import "font-awesome-webpack";
 
 // inject bundled Elm app into div#main
-var Elm = require( '../elm/Main' );
-var app = Elm.Main.embed( document.getElementById( 'main' ) );
-
-var fb = require('./appfb');
-
-app.ports.addMember.subscribe(function (member) {
+const Elm = require('../elm/Main');
+const app = Elm.Main.embed(document.getElementById('main'));
+const fb = require('./appfb');
+console.log(fb)
+app.ports.addMember.subscribe(member => {
   fb.addMember(member).then(function (response) {
-  }, function (err) {
-    console.error("addMember error:", err);
-  });
+    }
+    , function (err) {
+      console.error("addMember error:", err);
+    });
 });
 
 app.ports.updateMember.subscribe(function (member) {
@@ -45,26 +45,26 @@ app.ports.deleteLineItem.subscribe(function (lineItem) {
 });
 
 
-var memberListener = fb.memberListener();
+const memberListener = fb.memberListener();
 memberListener.on("child_added", function (data) {
-  var member = Object.assign({}, data.val(), { id: data.key });
+  const member = Object.assign({}, data.val(), { id: data.key });
   app.ports.memberAdded.send(member);
 });
 memberListener.on("child_changed", function (data) {
-  var member = Object.assign({}, data.val(), { id: data.key });
+  const member = Object.assign({}, data.val(), { id: data.key });
   app.ports.memberUpdated.send(member);
 });
 
-var lineItemlistener = fb.lineItemlistener();
+const lineItemlistener = fb.lineItemlistener();
 lineItemlistener.on("child_added", function (data) {
-  var lineItem = Object.assign({}, data.val(), { id: data.key });
+  const lineItem = Object.assign({}, data.val(), { id: data.key });
   app.ports.lineItemAdded.send(lineItem);
 });
 lineItemlistener.on("child_changed", function (data) {
-  var member = Object.assign({}, data.val(), { id: data.key });
+  const member = Object.assign({}, data.val(), { id: data.key });
   app.ports.lineItemUpdated.send(member);
 });
 lineItemlistener.on("child_removed", function (data) {
-  var lineItem = Object.assign({}, data.val(), { id: data.key });
+  const lineItem = Object.assign({}, data.val(), { id: data.key });
   app.ports.lineItemDeleted.send(lineItem);
 });
