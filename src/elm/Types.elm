@@ -14,6 +14,13 @@ type alias Member =
     }
 
 
+type alias MemberNameForm =
+    { name : String
+    , errors : FormErrors
+    , result : Maybe String
+    }
+
+
 type MemberPane
     = MemberPaneShowNone
     | MemberPaneShowDetails Member
@@ -79,7 +86,7 @@ type alias HasAmount a =
 type alias Model =
     { members : List Member
     , member : Maybe Member
-    , memberName : String
+    , memberNameForm : MemberNameForm
     , memberPayment : Float
     , monthForm : MonthForm
     , lineItems : List LineItem
@@ -140,6 +147,21 @@ newLineItem name amount =
 emptyLineItemForm : LineItemForm
 emptyLineItemForm =
     LineItemForm "" "" Dict.empty Nothing
+
+
+emptyMemberNameForm : MemberNameForm
+emptyMemberNameForm =
+    MemberNameForm "" Dict.empty Nothing
+
+
+memberNameFormFromMember : Member -> MemberNameForm
+memberNameFormFromMember member =
+    MemberNameForm member.name Dict.empty <| Just member.name
+
+
+emptyMonthForm : MonthForm
+emptyMonthForm =
+    MonthForm Date.Jan "2016" "7.5" Dict.empty Nothing
 
 
 lineItemFormFromLineItem : LineItem -> LineItemForm

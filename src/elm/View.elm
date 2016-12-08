@@ -287,7 +287,7 @@ memberPaneView model =
                 Just member ->
                     div [ class "tile is-child box" ]
                         [ memberDetailsHeaderView model "Member"
-                        , memberForm model
+                        , memberNameForm model.memberNameForm
                         , hr [] []
                         , paymentForm model
                         , hr [] []
@@ -308,7 +308,7 @@ memberPaneView model =
         MemberPaneAddMember ->
             div [ class "tile is-child box" ]
                 [ memberDetailsHeaderView model "Add member"
-                , memberForm model
+                , memberNameForm model.memberNameForm
                 ]
 
 
@@ -426,28 +426,40 @@ paymentForm model =
         ]
 
 
-memberForm : Model -> Html Msg
-memberForm model =
-    Html.form [ onSubmit SaveMemberName ]
-        [ div [ class "control is-grouped" ]
-            [ p
-                [ class "control" ]
-                [ input
+memberNameForm : MemberNameForm -> Html Msg
+memberNameForm form =
+    let
+        nameError =
+            getFormError "name" form.errors
+
+        nameInput =
+            wrapFormElement "Name" nameError <|
+                input
                     [ type_ "text"
-                    , class "input"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", nameError /= Nothing )
+                        ]
                     , onInput InputMemberName
                     , placeholder "Name"
-                    , value <| model.memberName
+                    , value form.name
                     ]
                     []
-                ]
-            , p [ class "control" ]
-                [ button [ type_ "submit", class "button is-primary" ]
+
+        submitButton =
+            p [ class "control" ]
+                [ button
+                    [ type_ "submit"
+                    , class "button is-primary"
+                    ]
                     [ text "Save"
                     ]
                 ]
+    in
+        Html.form [ onSubmit SaveMemberName ]
+            [ nameInput
+            , submitButton
             ]
-        ]
 
 
 monthOption : a -> Html msg

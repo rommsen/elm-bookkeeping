@@ -12,8 +12,8 @@ initialModel : Model
 initialModel =
     { members = []
     , member = Nothing
-    , memberName = ""
-    , monthForm = MonthForm Date.Jan "2016" "7.5" Dict.empty Nothing
+    , memberNameForm = emptyMemberNameForm
+    , monthForm = emptyMonthForm
     , memberPayment = 0
     , lineItems = []
     , lineItem = Nothing
@@ -35,27 +35,38 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         InputMemberName name ->
-            { model | memberName = name } ! []
+            let
+                form =
+                    model.memberNameForm
+            in
+                { model | memberNameForm = validateMemberNameForm { form | name = name } } ! []
 
         SaveMemberName ->
-            if (String.isEmpty model.memberName) then
-                model ! []
-            else
-                case model.member of
-                    Just member ->
-                        ( model, updateMemberCmd { member | name = model.memberName } )
+            let
+                form =
+                    validateMemberNameForm model.memberNameForm
+            in
+                case form.result of
+                    Just result ->
+                        case model.member of
+                            Just member ->
+                                ( model, updateMemberCmd { member | name = model.memberNameForm.name } )
+
+                            Nothing ->
+                                ( model, addMember <| memberEncoder <| memberWithName model.memberNameForm.name )
 
                     Nothing ->
-                        ( model, addMember <| memberEncoder <| memberWithName model.memberName )
+                        { model | memberNameForm = form } ! []
 
         MemberAdded value ->
             case JD.decodeValue memberDecoder value of
                 Ok newMember ->
-                    { model
-                        | members = newMember :: model.members
-                        , memberPane = MemberPaneShowNone
-                        , member = Nothing
-                    }
+                    withSummaries
+                        { model
+                            | members = newMember :: model.members
+                            , memberPane = MemberPaneShowNone
+                            , member = Nothing
+                        }
                         ! []
 
                 Err err ->
@@ -74,16 +85,14 @@ update msg model =
                                 newMember
                             else
                                 member
-
-                        newModel =
-                            withSummaries <|
-                                { model
-                                    | members = List.map map model.members
-                                    , member = Just newMember
-                                    , memberName = newMember.name
-                                }
                     in
-                        newModel ! []
+                        withSummaries
+                            { model
+                                | members = List.map map model.members
+                                , member = Just newMember
+                                , memberNameForm = memberNameFormFromMember newMember
+                            }
+                            ! []
 
                 Err err ->
                     let
@@ -118,7 +127,7 @@ update msg model =
                 Ok val ->
                     { model | memberPayment = val } ! []
 
-                Err bla ->
+                Err _ ->
                     model ! []
 
         SelectMonth newMonth ->
@@ -187,7 +196,9 @@ update msg model =
         LineItemAdded value ->
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
-                    withSummaries { model | lineItems = lineItem :: model.lineItems, lineItemForm = emptyLineItemForm } ! []
+                    withSummaries
+                        { model | lineItems = lineItem :: model.lineItems, lineItemForm = emptyLineItemForm }
+                        ! []
 
                 Err err ->
                     let
@@ -205,14 +216,13 @@ update msg model =
                                 newLineItem
                             else
                                 lineItem
-
-                        newModel =
+                    in
+                        withSummaries
                             { model
                                 | lineItems = List.map map model.lineItems
                                 , lineItem = Just newLineItem
                             }
-                    in
-                        withSummaries newModel ! []
+                            ! []
 
                 Err err ->
                     let
@@ -244,7 +254,9 @@ update msg model =
         LineItemDeleted value ->
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
-                    withSummaries { model | lineItems = deleteLineItemFromList lineItem model.lineItems } ! []
+                    withSummaries
+                        { model | lineItems = deleteLineItemFromList lineItem model.lineItems }
+                        ! []
 
                 Err err ->
                     let
@@ -259,10 +271,20 @@ update msg model =
         ChangeMemberPane memberPane ->
             case memberPane of
                 MemberPaneShowDetails member ->
-                    { model | memberPane = memberPane, member = Just member, memberName = member.name } ! []
+                    { model
+                        | memberPane = memberPane
+                        , member = Just member
+                        , memberNameForm = memberNameFormFromMember member
+                    }
+                        ! []
 
                 _ ->
-                    { model | memberPane = memberPane, member = Nothing, memberName = "" } ! []
+                    { model
+                        | memberPane = memberPane
+                        , member = Nothing
+                        , memberNameForm = emptyMemberNameForm
+                    }
+                        ! []
 
         FilterMembers memberFilter ->
             { model | memberFilter = memberFilter } ! []
@@ -331,6 +353,21 @@ validateMonthForm form =
         { form
             | errors = Dict.fromList <| validateAll validators form
             , result = Result.toMaybe <| Result.map2 (Month form.month) (String.toInt form.year) (String.toFloat form.amount)
+        }
+
+
+validateMemberNameForm : MemberNameForm -> MemberNameForm
+validateMemberNameForm form =
+    let
+        validators =
+            [ .name >> validateNotBlank "name" ]
+
+        errors =
+            Dict.fromList <| validateAll validators form
+    in
+        { form
+            | errors = errors
+            , result = Result.toMaybe <| stringNotBlankResult form.name
         }
 
 
