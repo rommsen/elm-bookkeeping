@@ -37,15 +37,6 @@ monthStringDecoder =
         |> JD.andThen monthDecoder
 
 
-
-{--
-andThen : (a -> Decoder b)                                              -> Decoder a         -> Decoder b
-           funktion von dem decodeteten wert zu einem Decoder von Typ b -> den Decoder für a -> einen Decoder von typ b
-
- Decoder String = Ein Decoder, der weiß wie er einen String Decodiert
--}
-
-
 monthDecoder : String -> JD.Decoder Date.Month
 monthDecoder string =
     case string of

@@ -1,17 +1,19 @@
 {
   "name": "elm-bookkeeping",
-  "description": "Webpack setup for writing Elm apps",
-  "version": "0.8.0",
+  "description": "Handles memberships and line items in a fictional club (just an Elm learning project)",
+  "version": "0.9.0",
   "license": "MIT",
-  "author": "Peter Morawiec",
+  "author": "Roman Sachse",
   "repository": {
     "type": "git",
-    "url": "https://github.com/moarwick/elm-webpack-starter"
+    "url": "https://github.com:rommsen/elm-bookkeeping.git"
   },
   "scripts": {
     "start": "webpack-dev-server --hot --inline --content-base src/",
     "build": "rimraf dist && webpack",
-    "reinstall": "rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install"
+    "installation": "yarn install && elm package install",
+    "reinstall": "rimraf node_modules && rimraf elm-stuff && yarn install && elm package install",
+    "deploy": "rimraf dist && webpack && firebase deploy"
   },
   "devDependencies": {
     "autoprefixer": "^6.3.6",
