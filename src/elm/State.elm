@@ -13,8 +13,8 @@ initialModel =
     { members = []
     , member = Nothing
     , memberNameForm = emptyMemberNameForm
+    , paymentForm = emptyPaymentForm
     , monthForm = emptyMonthForm
-    , memberPayment = 0
     , lineItems = []
     , lineItem = Nothing
     , lineItemForm = emptyLineItemForm
@@ -105,16 +105,25 @@ update msg model =
             ( model, updateMemberCmd { member | active = not <| member.active } )
 
         CreateMemberPayment ->
-            case model.member of
-                Just member ->
-                    ( { model | memberPayment = 0 }
-                    , Date.now
-                        |> Task.map (\date -> Payment model.memberPayment date)
-                        |> Task.perform (SaveMemberPayment member)
-                    )
+            let
+                form =
+                    validatePaymentForm model.paymentForm
+            in
+                case form.result of
+                    Just result ->
+                        case model.member of
+                            Just member ->
+                                ( { model | paymentForm = emptyPaymentForm }
+                                , Date.now
+                                    |> Task.map (\date -> Payment result date)
+                                    |> Task.perform (SaveMemberPayment member)
+                                )
 
-                Nothing ->
-                    model ! []
+                            Nothing ->
+                                model ! []
+
+                    Nothing ->
+                        { model | paymentForm = form } ! []
 
         SaveMemberPayment member payment ->
             ( model, updateMemberCmd { member | payments = payment :: member.payments } )
@@ -123,31 +132,33 @@ update msg model =
             ( model, updateMemberCmd { member | payments = deleteFromList payment member.payments } )
 
         InputMemberPaymentAmount amount ->
-            case String.toFloat amount of
-                Ok val ->
-                    { model | memberPayment = val } ! []
-
-                Err _ ->
-                    model ! []
+            let
+                form =
+                    model.paymentForm
+            in
+                { model | paymentForm = validatePaymentForm { form | amount = amount } }
+                    ! []
 
         SelectMonth newMonth ->
-            case model of
-                { monthForm } ->
-                    { model | monthForm = validateMonthForm { monthForm | month = newMonth } } ! []
+            let
+                form =
+                    model.monthForm
+            in
+                { model | monthForm = validateMonthForm { form | month = newMonth } } ! []
 
         InputMonthYear year ->
             let
-                monthForm =
+                form =
                     model.monthForm
             in
-                { model | monthForm = validateMonthForm { monthForm | year = year } } ! []
+                { model | monthForm = validateMonthForm { form | year = year } } ! []
 
         InputMonthAmount amount ->
             let
-                monthForm =
+                form =
                     model.monthForm
             in
-                { model | monthForm = validateMonthForm { monthForm | amount = amount } } ! []
+                { model | monthForm = validateMonthForm { form | amount = amount } } ! []
 
         AddMonthToActiveMembers ->
             let
@@ -325,12 +336,12 @@ withSummaries model =
     let
         memberPaymentsTotal =
             model.members
-                |> List.map memberPayment
+                |> List.map sumMemberPayment
                 |> List.sum
 
         memberDebitTotal =
             model.members
-                |> List.map memberDebit
+                |> List.map sumMemberDebit
                 |> List.sum
 
         lineItemTotal =
@@ -368,6 +379,21 @@ validateMemberNameForm form =
         { form
             | errors = errors
             , result = Result.toMaybe <| stringNotBlankResult form.name
+        }
+
+
+validatePaymentForm : PaymentForm -> PaymentForm
+validatePaymentForm form =
+    let
+        validators =
+            [ .amount >> validateFloat "amount" ]
+
+        errors =
+            Dict.fromList <| validateAll validators form
+    in
+        { form
+            | errors = errors
+            , result = Result.toMaybe <| String.toFloat form.amount
         }
 
 

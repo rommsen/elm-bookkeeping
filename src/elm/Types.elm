@@ -64,6 +64,13 @@ type alias Payment =
     }
 
 
+type alias PaymentForm =
+    { amount : String
+    , errors : FormErrors
+    , result : Maybe Float
+    }
+
+
 type alias LineItem =
     { id : String
     , name : String
@@ -87,8 +94,8 @@ type alias Model =
     { members : List Member
     , member : Maybe Member
     , memberNameForm : MemberNameForm
-    , memberPayment : Float
     , monthForm : MonthForm
+    , paymentForm : PaymentForm
     , lineItems : List LineItem
     , lineItem : Maybe LineItem
     , lineItemForm : LineItemForm
@@ -154,6 +161,11 @@ emptyMemberNameForm =
     MemberNameForm "" Dict.empty Nothing
 
 
+emptyPaymentForm : PaymentForm
+emptyPaymentForm =
+    PaymentForm "" Dict.empty Nothing
+
+
 memberNameFormFromMember : Member -> MemberNameForm
 memberNameFormFromMember member =
     MemberNameForm member.name Dict.empty <| Just member.name
@@ -184,16 +196,16 @@ sumAmount property record =
     List.foldl (\payment amount -> amount + payment.amount) 0 (property record)
 
 
-memberPayment : Member -> Float
-memberPayment member =
+sumMemberPayment : Member -> Float
+sumMemberPayment member =
     sumAmount .payments member
 
 
-memberDebit : Member -> Float
-memberDebit member =
+sumMemberDebit : Member -> Float
+sumMemberDebit member =
     sumAmount .months member
 
 
 memberBalance : Member -> Float
 memberBalance member =
-    memberPayment member - memberDebit member
+    sumMemberPayment member - sumMemberDebit member

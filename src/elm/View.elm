@@ -289,7 +289,7 @@ memberPaneView model =
                         [ memberDetailsHeaderView model "Member"
                         , memberNameForm model.memberNameForm
                         , hr [] []
-                        , paymentForm model
+                        , paymentForm model.paymentForm
                         , hr [] []
                         , memberPaymentListView member
                         , hr [] []
@@ -403,27 +403,40 @@ memberMonthItemView member month =
         ]
 
 
-paymentForm : Model -> Html Msg
-paymentForm model =
-    Html.form [ onSubmit CreateMemberPayment ]
-        [ div [ class "control is-grouped" ]
-            [ p [ class "control" ]
-                [ input
+paymentForm : PaymentForm -> Html Msg
+paymentForm form =
+    let
+        amountError =
+            getFormError "amount" form.errors
+
+        amountInput =
+            wrapFormElement "Payment" amountError <|
+                input
                     [ type_ "text"
-                    , class "input"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", amountError /= Nothing )
+                        ]
                     , onInput InputMemberPaymentAmount
                     , placeholder "Payment"
-                    , value <| toString model.memberPayment
+                    , value form.amount
                     ]
                     []
-                ]
-            , p [ class "control" ]
-                [ button [ type_ "submit", class "button is-primary" ]
-                    [ text "AddPayment"
+
+        submitButton =
+            p [ class "control" ]
+                [ button
+                    [ type_ "submit"
+                    , class "button is-primary"
+                    ]
+                    [ text "Make Payment"
                     ]
                 ]
+    in
+        Html.form [ onSubmit CreateMemberPayment ]
+            [ amountInput
+            , submitButton
             ]
-        ]
 
 
 memberNameForm : MemberNameForm -> Html Msg
