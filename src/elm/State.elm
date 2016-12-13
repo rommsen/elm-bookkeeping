@@ -1,4 +1,4 @@
-port module State exposing (init, subscriptions, update)
+port module State exposing (init, subscriptions, appUpdate, memberUpdate, lineItemUpdate)
 
 import Rest exposing (..)
 import Types exposing (..)
@@ -31,8 +31,15 @@ init =
     ( initialModel, Cmd.none )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+appUpdate : AppMsg -> Model -> ( Model, Cmd AppMsg )
+appUpdate msg model =
+    case msg of
+        SelectTab tab ->
+            { model | selectedTab = tab } ! []
+
+
+memberUpdate : MemberMsg -> Model -> ( Model, Cmd MemberMsg )
+memberUpdate msg model =
     case msg of
         InputMemberName name ->
             let
@@ -182,6 +189,31 @@ update msg model =
         DeleteMonthFromMember month member ->
             ( model, updateMemberCmd { member | months = deleteFromList month member.months } )
 
+        ChangeMemberPane memberPane ->
+            case memberPane of
+                MemberPaneShowDetails member ->
+                    { model
+                        | memberPane = memberPane
+                        , member = Just member
+                        , memberNameForm = memberNameFormFromMember member
+                    }
+                        ! []
+
+                _ ->
+                    { model
+                        | memberPane = memberPane
+                        , member = Nothing
+                        , memberNameForm = emptyMemberNameForm
+                    }
+                        ! []
+
+        FilterMembers memberFilter ->
+            { model | memberFilter = memberFilter } ! []
+
+
+lineItemUpdate : LineItemMsg -> Model -> ( Model, Cmd LineItemMsg )
+lineItemUpdate msg model =
+    case msg of
         SelectLineItem lineItem ->
             { model | lineItem = Just lineItem, lineItemForm = lineItemFormFromLineItem lineItem } ! []
 
@@ -275,30 +307,6 @@ update msg model =
                             Debug.crash err
                     in
                         model ! []
-
-        SelectTab tab ->
-            { model | selectedTab = tab } ! []
-
-        ChangeMemberPane memberPane ->
-            case memberPane of
-                MemberPaneShowDetails member ->
-                    { model
-                        | memberPane = memberPane
-                        , member = Just member
-                        , memberNameForm = memberNameFormFromMember member
-                    }
-                        ! []
-
-                _ ->
-                    { model
-                        | memberPane = memberPane
-                        , member = Nothing
-                        , memberNameForm = emptyMemberNameForm
-                    }
-                        ! []
-
-        FilterMembers memberFilter ->
-            { model | memberFilter = memberFilter } ! []
 
 
 updateMemberCmd : Member -> Cmd msg
@@ -469,11 +477,11 @@ validateInt name string =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ memberAdded MemberAdded
-        , memberUpdated MemberUpdated
-        , lineItemAdded LineItemAdded
-        , lineItemUpdated LineItemUpdated
-        , lineItemDeleted LineItemDeleted
+        [ Sub.map MemberMsg (memberAdded MemberAdded)
+        , Sub.map MemberMsg (memberUpdated MemberUpdated)
+        , Sub.map LineItemMsg (lineItemAdded LineItemAdded)
+        , Sub.map LineItemMsg (lineItemUpdated LineItemUpdated)
+        , Sub.map LineItemMsg (lineItemDeleted LineItemDeleted)
         ]
 
 

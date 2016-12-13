@@ -113,6 +113,16 @@ type Tab
 
 
 type Msg
+    = AppMsg AppMsg
+    | MemberMsg MemberMsg
+    | LineItemMsg LineItemMsg
+
+
+type AppMsg
+    = SelectTab Tab
+
+
+type MemberMsg
     = SaveMemberName
     | MemberAdded JD.Value
     | MemberUpdated JD.Value
@@ -127,8 +137,13 @@ type Msg
     | InputMonthAmount String
     | AddMonthToActiveMembers
     | DeleteMonthFromMember Month Member
+    | ChangeMemberPane MemberPane
+    | FilterMembers MemberFilter
+
+
+type LineItemMsg
+    = CancelLineItem
     | SelectLineItem LineItem
-    | CancelLineItem
     | InputLineItemName String
     | InputLineItemAmount String
     | SaveLineItem
@@ -136,9 +151,6 @@ type Msg
     | LineItemUpdated JD.Value
     | LineItemDeleted JD.Value
     | DeleteLineItem LineItem
-    | SelectTab Tab
-    | ChangeMemberPane MemberPane
-    | FilterMembers MemberFilter
 
 
 months : List Date.Month

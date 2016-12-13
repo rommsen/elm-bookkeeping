@@ -13,12 +13,12 @@ import Json.Decode as JD
 view : Model -> Html Msg
 view model =
     div []
-        [ viewHeader model
+        [ Html.map AppMsg (viewHeader model)
         , viewBody model
         ]
 
 
-viewHeader : Model -> Html Msg
+viewHeader : Model -> Html AppMsg
 viewHeader model =
     section [ class "hero is-info" ]
         [ div [ class "hero-head" ]
@@ -96,13 +96,13 @@ viewBody : Model -> Html Msg
 viewBody model =
     case model.selectedTab of
         MemberTab ->
-            membersView model
+            Html.map MemberMsg (membersView model)
 
         LineItemTab ->
-            lineItemsView model
+            Html.map LineItemMsg (lineItemsView model)
 
 
-membersView : Model -> Html Msg
+membersView : Model -> Html MemberMsg
 membersView model =
     section [ class "section" ]
         [ div [ class "container" ]
@@ -121,7 +121,7 @@ membersView model =
         ]
 
 
-lineItemsView : Model -> Html Msg
+lineItemsView : Model -> Html LineItemMsg
 lineItemsView model =
     section [ class "section" ]
         [ div [ class "container" ]
@@ -141,7 +141,7 @@ lineItemsView model =
         ]
 
 
-memberActionsView : Model -> Html Msg
+memberActionsView : Model -> Html MemberMsg
 memberActionsView model =
     div [ class "control is-grouped" ]
         [ p [ class "control" ]
@@ -168,7 +168,7 @@ memberActionsView model =
         ]
 
 
-memberListView : Model -> Html Msg
+memberListView : Model -> Html MemberMsg
 memberListView model =
     let
         members =
@@ -228,7 +228,7 @@ memberListView model =
             ]
 
 
-memberItemView : Model -> Member -> Html Msg
+memberItemView : Model -> Member -> Html MemberMsg
 memberItemView model member =
     tr []
         [ td [] [ text member.name ]
@@ -276,7 +276,7 @@ memberItemView model member =
         ]
 
 
-memberPaneView : Model -> Html Msg
+memberPaneView : Model -> Html MemberMsg
 memberPaneView model =
     case model.memberPane of
         MemberPaneShowNone ->
@@ -312,7 +312,7 @@ memberPaneView model =
                 ]
 
 
-memberDetailsHeaderView : Model -> String -> Html Msg
+memberDetailsHeaderView : Model -> String -> Html MemberMsg
 memberDetailsHeaderView model header =
     h1 [ class "title" ]
         [ text header
@@ -324,7 +324,7 @@ memberDetailsHeaderView model header =
         ]
 
 
-memberPaymentListView : Member -> Html Msg
+memberPaymentListView : Member -> Html MemberMsg
 memberPaymentListView member =
     div []
         [ h1 [ class "title" ] [ text "Payments" ]
@@ -341,7 +341,7 @@ memberPaymentListView member =
         ]
 
 
-memberPaymentItemView : Member -> Payment -> Html Msg
+memberPaymentItemView : Member -> Payment -> Html MemberMsg
 memberPaymentItemView member payment =
     let
         day =
@@ -368,7 +368,7 @@ memberPaymentItemView member payment =
             ]
 
 
-memberMonthListView : Member -> Html Msg
+memberMonthListView : Member -> Html MemberMsg
 memberMonthListView member =
     div []
         [ h1 [ class "title" ]
@@ -386,7 +386,7 @@ memberMonthListView member =
         ]
 
 
-memberMonthItemView : Member -> Month -> Html Msg
+memberMonthItemView : Member -> Month -> Html MemberMsg
 memberMonthItemView member month =
     tr []
         [ td [] [ text <| toString month.month ++ " " ++ toString month.year ]
@@ -403,7 +403,7 @@ memberMonthItemView member month =
         ]
 
 
-paymentForm : PaymentForm -> Html Msg
+paymentForm : PaymentForm -> Html MemberMsg
 paymentForm form =
     let
         amountError =
@@ -439,7 +439,7 @@ paymentForm form =
             ]
 
 
-memberNameForm : MemberNameForm -> Html Msg
+memberNameForm : MemberNameForm -> Html MemberMsg
 memberNameForm form =
     let
         nameError =
@@ -475,12 +475,12 @@ memberNameForm form =
             ]
 
 
-monthOption : a -> Html msg
+monthOption : a -> Html MemberMsg
 monthOption month =
     option [ value <| toString month ] [ text <| toString month ]
 
 
-monthForm : MonthForm -> Html Msg
+monthForm : MonthForm -> Html MemberMsg
 monthForm form =
     let
         yearError =
@@ -540,7 +540,7 @@ monthForm form =
             ]
 
 
-lineItemListView : Model -> Html Msg
+lineItemListView : Model -> Html LineItemMsg
 lineItemListView model =
     table [ class "table" ]
         [ thead []
@@ -554,7 +554,7 @@ lineItemListView model =
         ]
 
 
-lineItemView : Model -> LineItem -> Html Msg
+lineItemView : Model -> LineItem -> Html LineItemMsg
 lineItemView model lineItem =
     tr []
         [ td [] [ text <| lineItem.name ]
@@ -586,7 +586,7 @@ lineItemView model lineItem =
         ]
 
 
-lineItemForm : LineItemForm -> Html Msg
+lineItemForm : LineItemForm -> Html LineItemMsg
 lineItemForm form =
     let
         nameError =
@@ -648,7 +648,7 @@ lineItemForm form =
             ]
 
 
-wrapFormElement : String -> Maybe String -> Html Msg -> Html Msg
+wrapFormElement : String -> Maybe String -> Html msg -> Html msg
 wrapFormElement elementLabel elementError element =
     let
         withError =
