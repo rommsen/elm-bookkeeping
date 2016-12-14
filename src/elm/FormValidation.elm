@@ -57,3 +57,8 @@ validateInt name string =
 
         Err _ ->
             ( name, Just "This is not a valid number" )
+
+
+getFormError : String -> Dict.Dict String (Maybe String) -> Maybe String
+getFormError key errors =
+    Maybe.withDefault Nothing (Dict.get key errors)

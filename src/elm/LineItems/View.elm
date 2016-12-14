@@ -1,6 +1,8 @@
 module LineItems.View exposing (..)
 
 import LineItems.Types exposing (..)
+import FormElements exposing (wrapFormElement)
+import FormValidation exposing (getFormError)
 import Types exposing (Model)
 import Dict
 import Html exposing (..)
@@ -134,35 +136,3 @@ lineItemForm form =
                 , cancelButton
                 ]
             ]
-
-
-wrapFormElement : String -> Maybe String -> Html msg -> Html msg
-wrapFormElement elementLabel elementError element =
-    let
-        withError =
-            case elementError of
-                Just error ->
-                    [ element
-                    , i [ class "fa fa-warning" ] []
-                    , span [ class "help is-danger" ] [ text error ]
-                    ]
-
-                Nothing ->
-                    [ element ]
-    in
-        div [ class "control" ]
-            [ label [ class "label" ] [ text elementLabel ]
-            , p
-                [ classList
-                    [ ( "control", True )
-                    , ( "has-icon", elementError /= Nothing )
-                    , ( "has-icon-right", elementError /= Nothing )
-                    ]
-                ]
-                withError
-            ]
-
-
-getFormError : String -> Dict.Dict String (Maybe String) -> Maybe String
-getFormError key errors =
-    Maybe.withDefault Nothing (Dict.get key errors)

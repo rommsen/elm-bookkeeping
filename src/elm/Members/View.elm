@@ -3,6 +3,8 @@ module Members.View exposing (view)
 import Members.Types exposing (..)
 import Members.Rest exposing (..)
 import Types exposing (Model)
+import FormElements exposing (wrapFormElement)
+import FormValidation exposing (getFormError)
 import Sum exposing (memberBalance)
 import Date
 import Dict
@@ -428,35 +430,3 @@ monthForm form =
             , amountInput
             , submitButton
             ]
-
-
-wrapFormElement : String -> Maybe String -> Html msg -> Html msg
-wrapFormElement elementLabel elementError element =
-    let
-        withError =
-            case elementError of
-                Just error ->
-                    [ element
-                    , i [ class "fa fa-warning" ] []
-                    , span [ class "help is-danger" ] [ text error ]
-                    ]
-
-                Nothing ->
-                    [ element ]
-    in
-        div [ class "control" ]
-            [ label [ class "label" ] [ text elementLabel ]
-            , p
-                [ classList
-                    [ ( "control", True )
-                    , ( "has-icon", elementError /= Nothing )
-                    , ( "has-icon-right", elementError /= Nothing )
-                    ]
-                ]
-                withError
-            ]
-
-
-getFormError : String -> Dict.Dict String (Maybe String) -> Maybe String
-getFormError key errors =
-    Maybe.withDefault Nothing (Dict.get key errors)
