@@ -88,9 +88,12 @@ update msg model =
         CreateMemberPayment ->
             let
                 form =
-                    validatePaymentForm model.paymentForm
+                    model.paymentForm
+
+                paymentForm =
+                    { form | errors = validatePaymentForm form }
             in
-                case form.result of
+                case extractAmountFromPaymentForm paymentForm of
                     Just result ->
                         case model.member of
                             Just member ->
@@ -117,7 +120,9 @@ update msg model =
                 form =
                     model.paymentForm
             in
-                { model | paymentForm = validatePaymentForm { form | amount = amount } }
+                { model
+                    | paymentForm = { form | amount = amount, errors = validatePaymentForm form }
+                }
                     ! []
 
         SelectMonth newMonth ->
@@ -231,6 +236,18 @@ extractMonthFromForm form =
         |> Result.toMaybe
 
 
+validatePaymentForm : PaymentForm -> List Error
+validatePaymentForm form =
+    begin form
+        |> validate (validateFloat "amount" << .amount)
+        |> extractErrors
+
+
+extractAmountFromPaymentForm : PaymentForm -> Maybe Float
+extractAmountFromPaymentForm form =
+    String.toFloat form.amount |> Result.toMaybe
+
+
 validateMemberNameForm : MemberNameForm -> MemberNameForm
 validateMemberNameForm form =
     let
@@ -243,21 +260,6 @@ validateMemberNameForm form =
         { form
             | errors = errors
             , result = Result.toMaybe <| FormValidation.stringNotBlankResult form.name
-        }
-
-
-validatePaymentForm : PaymentForm -> PaymentForm
-validatePaymentForm form =
-    let
-        validators =
-            [ .amount >> FormValidation.validateFloat "amount" ]
-
-        errors =
-            Dict.fromList <| FormValidation.validateAll validators form
-    in
-        { form
-            | errors = errors
-            , result = Result.toMaybe <| String.toFloat form.amount
         }
 
 

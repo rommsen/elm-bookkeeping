@@ -299,10 +299,10 @@ paymentForm : PaymentForm -> Html Msg
 paymentForm form =
     let
         amountError =
-            getFormError "amount" form.errors
+            findError "amount" form.errors
 
         amountInput =
-            wrapFormElement "Payment" amountError <|
+            wrapFormElement2 "Payment" amountError <|
                 input
                     [ type_ "text"
                     , classList

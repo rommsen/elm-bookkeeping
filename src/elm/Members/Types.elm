@@ -59,8 +59,7 @@ type alias Payment =
 
 type alias PaymentForm =
     { amount : String
-    , errors : FormValidation.FormErrors
-    , result : Maybe Float
+    , errors : List Error
     }
 
 
@@ -90,7 +89,7 @@ emptyMemberNameForm =
 
 emptyPaymentForm : PaymentForm
 emptyPaymentForm =
-    PaymentForm "" Dict.empty Nothing
+    PaymentForm "" []
 
 
 memberNameFormFromMember : Member -> MemberNameForm

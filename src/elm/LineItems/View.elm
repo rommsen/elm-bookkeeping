@@ -4,7 +4,6 @@ import LineItems.Types exposing (..)
 import FormElements exposing (wrapFormElement)
 import FormValidation exposing (getFormError)
 import Types exposing (Model)
-import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
