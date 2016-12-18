@@ -3,11 +3,11 @@ module Members.View exposing (view)
 import Members.Types exposing (..)
 import Members.Rest exposing (..)
 import Types exposing (Model)
-import FormElements exposing (wrapFormElement)
+import FormElements exposing (wrapFormElement, wrapFormElement2)
 import FormValidation exposing (getFormError)
+import Form.Validation exposing (findError)
 import Sum exposing (memberBalance)
 import Date
-import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -376,10 +376,10 @@ monthForm : MonthForm -> Html Msg
 monthForm form =
     let
         yearError =
-            getFormError "year" form.errors
+            findError "year" form.errors
 
         amountError =
-            getFormError "amount" form.errors
+            findError "amount" form.errors
 
         monthSelect =
             wrapFormElement "Month" Nothing <|
@@ -390,7 +390,7 @@ monthForm form =
                     ]
 
         yearInput =
-            wrapFormElement "Year" yearError <|
+            wrapFormElement2 "Year" yearError <|
                 input
                     [ type_ "text"
                     , classList
@@ -404,7 +404,7 @@ monthForm form =
                     []
 
         amountInput =
-            wrapFormElement "Amount" amountError <|
+            wrapFormElement2 "Amount" amountError <|
                 input
                     [ type_ "text"
                     , classList

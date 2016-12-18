@@ -3,6 +3,7 @@ module Members.Types exposing (..)
 import Date
 import Dict
 import FormValidation
+import Form.Validation exposing (..)
 import Json.Decode as JD
 
 
@@ -46,8 +47,7 @@ type alias MonthForm =
     { month : Date.Month
     , year : String
     , amount : String
-    , errors : FormValidation.FormErrors
-    , result : Maybe Month
+    , errors : List Error
     }
 
 
@@ -100,7 +100,7 @@ memberNameFormFromMember member =
 
 emptyMonthForm : MonthForm
 emptyMonthForm =
-    MonthForm Date.Jan "2016" "7.5" Dict.empty Nothing
+    MonthForm Date.Jan "2016" "7.5" []
 
 
 memberWithName : String -> Member

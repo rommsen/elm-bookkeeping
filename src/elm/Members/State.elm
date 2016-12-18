@@ -2,6 +2,7 @@ port module Members.State exposing (update, subscriptions)
 
 import Members.Types exposing (..)
 import FormValidation
+import Form.Validation exposing (..)
 import Members.Rest exposing (..)
 import Sum exposing (withSummaries)
 import Types exposing (Model)
@@ -124,28 +125,40 @@ update msg model =
                 form =
                     model.monthForm
             in
-                { model | monthForm = validateMonthForm { form | month = newMonth } } ! []
+                { model
+                    | monthForm = { form | month = newMonth, errors = validateMonthForm form }
+                }
+                    ! []
 
         InputMonthYear year ->
             let
                 form =
                     model.monthForm
             in
-                { model | monthForm = validateMonthForm { form | year = year } } ! []
+                { model
+                    | monthForm = { form | year = year, errors = validateMonthForm form }
+                }
+                    ! []
 
         InputMonthAmount amount ->
             let
                 form =
                     model.monthForm
             in
-                { model | monthForm = validateMonthForm { form | amount = amount } } ! []
+                { model
+                    | monthForm = { form | amount = amount, errors = validateMonthForm form }
+                }
+                    ! []
 
         AddMonthToActiveMembers ->
             let
+                form =
+                    model.monthForm
+
                 monthForm =
-                    validateMonthForm model.monthForm
+                    { form | errors = validateMonthForm form }
             in
-                case monthForm.result of
+                case extractMonthFromForm monthForm of
                     Just result ->
                         let
                             cmds =
@@ -154,7 +167,7 @@ update msg model =
                                     |> List.map (\month -> { month | months = result :: month.months })
                                     |> List.map updateMemberCmd
                         in
-                            model ! cmds
+                            { model | monthForm = monthForm } ! cmds
 
                     Nothing ->
                         { model | monthForm = monthForm } ! []
@@ -204,18 +217,18 @@ monthEquals a b =
     a == b
 
 
-validateMonthForm : MonthForm -> MonthForm
+validateMonthForm : MonthForm -> List Error
 validateMonthForm form =
-    let
-        validators =
-            [ .amount >> FormValidation.validateFloat "amount"
-            , .year >> FormValidation.validateInt "year"
-            ]
-    in
-        { form
-            | errors = Dict.fromList <| FormValidation.validateAll validators form
-            , result = Result.toMaybe <| Result.map2 (Month form.month) (String.toInt form.year) (String.toFloat form.amount)
-        }
+    begin form
+        |> validate (validateFloat "amount" << .amount)
+        |> validate (validateFloat "year" << .year)
+        |> extractErrors
+
+
+extractMonthFromForm : MonthForm -> Maybe Month
+extractMonthFromForm form =
+    Result.map2 (Month form.month) (String.toInt form.year) (String.toFloat form.amount)
+        |> Result.toMaybe
 
 
 validateMemberNameForm : MemberNameForm -> MemberNameForm
