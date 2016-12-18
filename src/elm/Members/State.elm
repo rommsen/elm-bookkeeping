@@ -1,13 +1,11 @@
 port module Members.State exposing (update, subscriptions)
 
 import Members.Types exposing (..)
-import FormValidation
 import Form.Validation exposing (..)
 import Members.Rest exposing (..)
 import Sum exposing (withSummaries)
 import Types exposing (Model)
 import Date
-import Dict
 import Json.Decode as JD
 import Task
 
@@ -20,14 +18,20 @@ update msg model =
                 form =
                     model.memberNameForm
             in
-                { model | memberNameForm = validateMemberNameForm { form | name = name } } ! []
+                { model
+                    | memberNameForm = { form | name = name, errors = validateMemberNameForm form }
+                }
+                    ! []
 
         SaveMemberName ->
             let
                 form =
-                    validateMemberNameForm model.memberNameForm
+                    model.memberNameForm
+
+                memberNameForm =
+                    { form | errors = validateMemberNameForm form }
             in
-                case form.result of
+                case extractNameFromMemberNameForm memberNameForm of
                     Just result ->
                         case model.member of
                             Just member ->
@@ -248,19 +252,16 @@ extractAmountFromPaymentForm form =
     String.toFloat form.amount |> Result.toMaybe
 
 
-validateMemberNameForm : MemberNameForm -> MemberNameForm
+validateMemberNameForm : MemberNameForm -> List Error
 validateMemberNameForm form =
-    let
-        validators =
-            [ .name >> FormValidation.validateNotBlank "name" ]
+    begin form
+        |> validate (validateNotBlank "name" << .name)
+        |> extractErrors
 
-        errors =
-            Dict.fromList <| FormValidation.validateAll validators form
-    in
-        { form
-            | errors = errors
-            , result = Result.toMaybe <| FormValidation.stringNotBlankResult form.name
-        }
+
+extractNameFromMemberNameForm : MemberNameForm -> Maybe String
+extractNameFromMemberNameForm form =
+    stringNotBlankResult form.name |> Result.toMaybe
 
 
 

@@ -4,7 +4,6 @@ import Members.Types exposing (..)
 import Members.Rest exposing (..)
 import Types exposing (Model)
 import FormElements exposing (wrapFormElement, wrapFormElement2)
-import FormValidation exposing (getFormError)
 import Form.Validation exposing (findError)
 import Sum exposing (memberBalance)
 import Date
@@ -335,10 +334,10 @@ memberNameForm : MemberNameForm -> Html Msg
 memberNameForm form =
     let
         nameError =
-            getFormError "name" form.errors
+            findError "name" form.errors
 
         nameInput =
-            wrapFormElement "Name" nameError <|
+            wrapFormElement2 "Name" nameError <|
                 input
                     [ type_ "text"
                     , classList

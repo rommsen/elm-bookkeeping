@@ -46,6 +46,24 @@ validateFloat name string =
             Invalid <| Error name "This is not a valid number"
 
 
+validateNotBlank : String -> String -> Status
+validateNotBlank name string =
+    case stringNotBlankResult string of
+        Ok _ ->
+            Valid
+
+        Err _ ->
+            Invalid <| Error name "This should not be empty"
+
+
+stringNotBlankResult : String -> Result String String
+stringNotBlankResult string =
+    if String.isEmpty string then
+        Err "string is empty"
+    else
+        Ok string
+
+
 findError : String -> List Error -> Maybe Error
 findError field list =
     case list of

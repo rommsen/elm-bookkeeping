@@ -1,8 +1,6 @@
 module Members.Types exposing (..)
 
 import Date
-import Dict
-import FormValidation
 import Form.Validation exposing (..)
 import Json.Decode as JD
 
@@ -18,8 +16,7 @@ type alias Member =
 
 type alias MemberNameForm =
     { name : String
-    , errors : FormValidation.FormErrors
-    , result : Maybe String
+    , errors : List Error
     }
 
 
@@ -84,7 +81,7 @@ type Msg
 
 emptyMemberNameForm : MemberNameForm
 emptyMemberNameForm =
-    MemberNameForm "" Dict.empty Nothing
+    MemberNameForm "" []
 
 
 emptyPaymentForm : PaymentForm
@@ -94,7 +91,7 @@ emptyPaymentForm =
 
 memberNameFormFromMember : Member -> MemberNameForm
 memberNameFormFromMember member =
-    MemberNameForm member.name Dict.empty <| Just member.name
+    MemberNameForm member.name []
 
 
 emptyMonthForm : MonthForm
