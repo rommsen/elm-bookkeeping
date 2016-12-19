@@ -12,14 +12,16 @@ type alias HasAmount a =
 type alias Model =
     { members : List Member
     , member : Maybe Member
+    , memberPaymentsTotal : Float
+    , memberDebitTotal : Float
     , memberNameForm : MemberNameForm
     , monthForm : MonthForm
     , paymentForm : PaymentForm
     , lineItems : List LineItem
     , lineItem : Maybe LineItem
     , lineItemForm : LineItemForm
+    , lineItemTotal : Float
     , totalBalance : Float
-    , totalMemberDebit : Float
     , memberPane : MemberPane
     , memberFilter : MemberFilter
     , selectedTab : Tab

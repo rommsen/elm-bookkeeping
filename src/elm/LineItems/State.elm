@@ -4,7 +4,7 @@ import LineItems.Types exposing (..)
 import Form.Validation exposing (..)
 import LineItems.Rest exposing (..)
 import Types exposing (Model)
-import Sum exposing (withSummaries)
+import Sum exposing (sumAmount)
 import Json.Decode as JD
 
 
@@ -41,7 +41,10 @@ update msg model =
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
                     withSummaries
-                        { model | lineItems = lineItem :: model.lineItems, lineItemForm = emptyLineItemForm }
+                        { model
+                            | lineItems = lineItem :: model.lineItems
+                            , lineItemForm = emptyLineItemForm
+                        }
                         ! []
 
                 Err err ->
@@ -65,6 +68,7 @@ update msg model =
                             { model
                                 | lineItems = List.map map model.lineItems
                                 , lineItem = Just newLineItem
+                                , lineItemForm = emptyLineItemForm
                             }
                             ! []
 
@@ -135,6 +139,11 @@ extractLineItemFromForm : LineItemForm -> Maybe LineItem
 extractLineItemFromForm form =
     Result.map2 (LineItem "") (Form.Validation.stringNotBlankResult form.name) (String.toFloat form.amount)
         |> Result.toMaybe
+
+
+withSummaries : Model -> Model
+withSummaries model =
+    { model | lineItemTotal = sumAmount .lineItems model }
 
 
 

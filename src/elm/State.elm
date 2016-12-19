@@ -14,13 +14,15 @@ initialModel =
     { members = []
     , member = Nothing
     , memberNameForm = emptyMemberNameForm
+    , memberDebitTotal = 0
+    , memberPaymentsTotal = 0
     , paymentForm = emptyPaymentForm
     , monthForm = emptyMonthForm
     , lineItems = []
     , lineItem = Nothing
     , lineItemForm = emptyLineItemForm
+    , lineItemTotal = 0
     , totalBalance = 0
-    , totalMemberDebit = 0
     , memberPane = MemberPaneShowNone
     , memberFilter = MemberFilterAll
     , selectedTab = MemberTab
@@ -47,14 +49,19 @@ update msg model =
                 ( newModel, cmd ) =
                     Members.State.update memberMsg model
             in
-                ( newModel, Cmd.map MemberMsg cmd )
+                ( withSummaries newModel, Cmd.map MemberMsg cmd )
 
         LineItemMsg lineItemMsg ->
             let
                 ( newModel, cmd ) =
                     LineItems.State.update lineItemMsg model
             in
-                ( newModel, Cmd.map LineItemMsg cmd )
+                ( withSummaries newModel, Cmd.map LineItemMsg cmd )
+
+
+withSummaries : Model -> Model
+withSummaries model =
+    { model | totalBalance = model.memberPaymentsTotal + model.lineItemTotal }
 
 
 subscriptions : Model -> Sub Types.Msg

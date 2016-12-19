@@ -1,9 +1,10 @@
-port module Members.State exposing (update, subscriptions)
+port module Members.State exposing (update, subscriptions, memberBalance)
 
 import Members.Types exposing (..)
 import Form.Validation exposing (..)
+import Sum exposing (..)
 import Members.Rest exposing (..)
-import Sum exposing (withSummaries)
+import Sum exposing (sumAmount)
 import Types exposing (Model)
 import Date
 import Json.Decode as JD
@@ -262,6 +263,40 @@ validateMemberNameForm form =
 extractNameFromMemberNameForm : MemberNameForm -> Maybe String
 extractNameFromMemberNameForm form =
     stringNotBlankResult form.name |> Result.toMaybe
+
+
+withSummaries : Model -> Model
+withSummaries model =
+    let
+        memberPaymentsTotal =
+            model.members
+                |> List.map sumMemberPayment
+                |> List.sum
+
+        memberDebitTotal =
+            model.members
+                |> List.map sumMemberDebit
+                |> List.sum
+    in
+        { model
+            | memberPaymentsTotal = memberPaymentsTotal
+            , memberDebitTotal = memberPaymentsTotal - memberDebitTotal
+        }
+
+
+sumMemberPayment : Member -> Float
+sumMemberPayment member =
+    sumAmount .payments member
+
+
+sumMemberDebit : Member -> Float
+sumMemberDebit member =
+    sumAmount .months member
+
+
+memberBalance : Member -> Float
+memberBalance member =
+    sumMemberPayment member - sumMemberDebit member
 
 
 
