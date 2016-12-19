@@ -1,8 +1,7 @@
 module LineItems.Types exposing (..)
 
-import Dict
 import Json.Decode as JD
-import FormValidation
+import Form.Validation exposing (..)
 
 
 type alias LineItem =
@@ -15,8 +14,7 @@ type alias LineItem =
 type alias LineItemForm =
     { name : String
     , amount : String
-    , errors : FormValidation.FormErrors
-    , result : Maybe LineItem
+    , errors : List Error
     }
 
 
@@ -39,9 +37,9 @@ newLineItem name amount =
 
 emptyLineItemForm : LineItemForm
 emptyLineItemForm =
-    LineItemForm "" "" Dict.empty Nothing
+    LineItemForm "" "" []
 
 
 lineItemFormFromLineItem : LineItem -> LineItemForm
 lineItemFormFromLineItem lineItem =
-    LineItemForm lineItem.name (toString lineItem.amount) Dict.empty Nothing
+    LineItemForm lineItem.name (toString lineItem.amount) []

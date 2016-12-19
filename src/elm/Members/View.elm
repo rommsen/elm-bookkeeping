@@ -3,7 +3,7 @@ module Members.View exposing (view)
 import Members.Types exposing (..)
 import Members.Rest exposing (..)
 import Types exposing (Model)
-import FormElements exposing (wrapFormElement, wrapFormElement2)
+import FormElements exposing (wrapFormElement)
 import Form.Validation exposing (findError)
 import Sum exposing (memberBalance)
 import Date
@@ -301,7 +301,7 @@ paymentForm form =
             findError "amount" form.errors
 
         amountInput =
-            wrapFormElement2 "Payment" amountError <|
+            wrapFormElement "Payment" amountError <|
                 input
                     [ type_ "text"
                     , classList
@@ -337,7 +337,7 @@ memberNameForm form =
             findError "name" form.errors
 
         nameInput =
-            wrapFormElement2 "Name" nameError <|
+            wrapFormElement "Name" nameError <|
                 input
                     [ type_ "text"
                     , classList
@@ -389,7 +389,7 @@ monthForm form =
                     ]
 
         yearInput =
-            wrapFormElement2 "Year" yearError <|
+            wrapFormElement "Year" yearError <|
                 input
                     [ type_ "text"
                     , classList
@@ -403,7 +403,7 @@ monthForm form =
                     []
 
         amountInput =
-            wrapFormElement2 "Amount" amountError <|
+            wrapFormElement "Amount" amountError <|
                 input
                     [ type_ "text"
                     , classList

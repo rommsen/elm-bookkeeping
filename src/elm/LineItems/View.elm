@@ -2,7 +2,7 @@ module LineItems.View exposing (..)
 
 import LineItems.Types exposing (..)
 import FormElements exposing (wrapFormElement)
-import FormValidation exposing (getFormError)
+import Form.Validation exposing (..)
 import Types exposing (Model)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -79,10 +79,10 @@ lineItemForm : LineItemForm -> Html Msg
 lineItemForm form =
     let
         nameError =
-            getFormError "name" form.errors
+            findError "name" form.errors
 
         amountError =
-            getFormError "amount" form.errors
+            findError "amount" form.errors
 
         nameInput =
             wrapFormElement "Name" nameError <|

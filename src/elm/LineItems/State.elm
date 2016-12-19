@@ -1,11 +1,10 @@
 port module LineItems.State exposing (update, subscriptions)
 
 import LineItems.Types exposing (..)
-import FormValidation
+import Form.Validation exposing (..)
 import LineItems.Rest exposing (..)
 import Types exposing (Model)
 import Sum exposing (withSummaries)
-import Dict
 import Json.Decode as JD
 
 
@@ -23,7 +22,9 @@ update msg model =
                 form =
                     model.lineItemForm
             in
-                { model | lineItemForm = validateLineItemForm { form | name = name } }
+                { model
+                    | lineItemForm = { form | name = name, errors = validateLineItemForm form }
+                }
                     ! []
 
         InputLineItemAmount amount ->
@@ -31,7 +32,9 @@ update msg model =
                 form =
                     model.lineItemForm
             in
-                { model | lineItemForm = validateLineItemForm { form | amount = amount } }
+                { model
+                    | lineItemForm = { form | amount = amount, errors = validateLineItemForm form }
+                }
                     ! []
 
         LineItemAdded value ->
@@ -74,10 +77,13 @@ update msg model =
 
         SaveLineItem ->
             let
+                form =
+                    model.lineItemForm
+
                 lineItemForm =
-                    validateLineItemForm model.lineItemForm
+                    { form | errors = validateLineItemForm form }
             in
-                case lineItemForm.result of
+                case extractLineItemFromForm lineItemForm of
                     Just result ->
                         case model.lineItem of
                             Just lineItem ->
@@ -117,21 +123,18 @@ deleteLineItemFromList lineItem list =
     List.filter (\{ id } -> id /= lineItem.id) list
 
 
-validateLineItemForm : LineItemForm -> LineItemForm
+validateLineItemForm : LineItemForm -> List Error
 validateLineItemForm form =
-    let
-        validators =
-            [ .amount >> FormValidation.validateFloat "amount"
-            , .name >> FormValidation.validateNotBlank "name"
-            ]
+    begin form
+        |> validate (validateFloat "amount" << .amount)
+        |> validate (validateNotBlank "name" << .name)
+        |> extractErrors
 
-        errors =
-            Dict.fromList <| FormValidation.validateAll validators form
-    in
-        { form
-            | errors = errors
-            , result = Result.toMaybe <| Result.map2 (LineItem "") (FormValidation.stringNotBlankResult form.name) (String.toFloat form.amount)
-        }
+
+extractLineItemFromForm : LineItemForm -> Maybe LineItem
+extractLineItemFromForm form =
+    Result.map2 (LineItem "") (Form.Validation.stringNotBlankResult form.name) (String.toFloat form.amount)
+        |> Result.toMaybe
 
 
 
