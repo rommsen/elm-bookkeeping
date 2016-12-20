@@ -5,6 +5,19 @@ import Form.Validation exposing (..)
 import Json.Decode as JD
 
 
+type alias Model =
+    { members : List Member
+    , member : Maybe Member
+    , memberPaymentsTotal : Float
+    , memberDebitTotal : Float
+    , memberNameForm : MemberNameForm
+    , monthForm : MonthForm
+    , paymentForm : PaymentForm
+    , memberPane : MemberPane
+    , memberFilter : MemberFilter
+    }
+
+
 type alias Member =
     { id : String
     , name : String

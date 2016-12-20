@@ -4,6 +4,14 @@ import Json.Decode as JD
 import Form.Validation exposing (..)
 
 
+type alias Model =
+    { lineItems : List LineItem
+    , lineItem : Maybe LineItem
+    , lineItemForm : LineItemForm
+    , lineItemTotal : Float
+    }
+
+
 type alias LineItem =
     { id : String
     , name : String

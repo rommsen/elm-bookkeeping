@@ -1,14 +1,32 @@
-port module Members.State exposing (update, subscriptions, memberBalance)
+port module Members.State exposing (init, update, subscriptions, memberBalance)
 
 import Members.Types exposing (..)
 import Form.Validation exposing (..)
 import Sum exposing (..)
 import Members.Rest exposing (..)
 import Sum exposing (sumAmount)
-import Types exposing (Model)
 import Date
 import Json.Decode as JD
 import Task
+
+
+initialModel : Model
+initialModel =
+    { members = []
+    , member = Nothing
+    , memberNameForm = emptyMemberNameForm
+    , memberDebitTotal = 0
+    , memberPaymentsTotal = 0
+    , paymentForm = emptyPaymentForm
+    , monthForm = emptyMonthForm
+    , memberPane = MemberPaneShowNone
+    , memberFilter = MemberFilterAll
+    }
+
+
+init : ( Model, Cmd msg )
+init =
+    ( initialModel, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

@@ -3,7 +3,6 @@ module Members.View exposing (view)
 import Members.Types exposing (..)
 import Members.State exposing (..)
 import Members.Rest exposing (..)
-import Types exposing (Model)
 import FormElements exposing (wrapFormElement)
 import Form.Validation exposing (findError)
 import Date

@@ -20,7 +20,7 @@ viewBody : Model -> Html Msg
 viewBody model =
     case model.selectedTab of
         MemberTab ->
-            Html.map MemberMsg (Members.View.view model)
+            Html.map MemberMsg (Members.View.view model.members)
 
         LineItemTab ->
-            Html.map LineItemMsg (LineItems.View.view model)
+            Html.map LineItemMsg (LineItems.View.view model.lineItems)

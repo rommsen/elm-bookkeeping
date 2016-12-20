@@ -1,11 +1,24 @@
-port module LineItems.State exposing (update, subscriptions)
+port module LineItems.State exposing (init, update, subscriptions)
 
 import LineItems.Types exposing (..)
 import Form.Validation exposing (..)
 import LineItems.Rest exposing (..)
-import Types exposing (Model)
 import Sum exposing (sumAmount)
 import Json.Decode as JD
+
+
+initialModel : Model
+initialModel =
+    { lineItems = []
+    , lineItem = Nothing
+    , lineItemForm = emptyLineItemForm
+    , lineItemTotal = 0
+    }
+
+
+init : ( Model, Cmd msg )
+init =
+    ( initialModel, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

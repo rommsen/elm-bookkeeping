@@ -40,12 +40,12 @@ viewHeader model =
                             [ div
                                 [ classList
                                     [ ( "notification", True )
-                                    , ( "is-danger", model.memberDebitTotal < 0 )
-                                    , ( "is-success", model.memberDebitTotal >= 0 )
+                                    , ( "is-danger", model.members.memberDebitTotal < 0 )
+                                    , ( "is-success", model.members.memberDebitTotal >= 0 )
                                     ]
                                 ]
                                 [ p [ class "title is-4" ]
-                                    [ text <| "Members:  " ++ toString model.memberDebitTotal ++ "€" ]
+                                    [ text <| "Members:  " ++ toString model.members.memberDebitTotal ++ "€" ]
                                 ]
                             ]
                         ]

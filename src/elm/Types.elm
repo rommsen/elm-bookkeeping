@@ -10,21 +10,10 @@ type alias HasAmount a =
 
 
 type alias Model =
-    { members : List Member
-    , member : Maybe Member
-    , memberPaymentsTotal : Float
-    , memberDebitTotal : Float
-    , memberNameForm : MemberNameForm
-    , monthForm : MonthForm
-    , paymentForm : PaymentForm
-    , lineItems : List LineItem
-    , lineItem : Maybe LineItem
-    , lineItemForm : LineItemForm
-    , lineItemTotal : Float
+    { members : Members.Types.Model
+    , lineItems : LineItems.Types.Model
     , totalBalance : Float
-    , memberPane : MemberPane
-    , memberFilter : MemberFilter
-    , selectedTab : Tab
+    , selectedTab : App.Types.Tab
     }
 
 

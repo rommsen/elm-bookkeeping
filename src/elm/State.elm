@@ -1,37 +1,35 @@
 port module State exposing (init, subscriptions, update)
 
 import Types exposing (..)
-import App.Types exposing (..)
+import App.Types exposing (Tab(..))
 import App.State
-import LineItems.Types exposing (..)
 import LineItems.State
-import Members.Types exposing (..)
 import Members.State
 
 
-initialModel : Model
-initialModel =
-    { members = []
-    , member = Nothing
-    , memberNameForm = emptyMemberNameForm
-    , memberDebitTotal = 0
-    , memberPaymentsTotal = 0
-    , paymentForm = emptyPaymentForm
-    , monthForm = emptyMonthForm
-    , lineItems = []
-    , lineItem = Nothing
-    , lineItemForm = emptyLineItemForm
-    , lineItemTotal = 0
-    , totalBalance = 0
-    , memberPane = MemberPaneShowNone
-    , memberFilter = MemberFilterAll
-    , selectedTab = MemberTab
-    }
-
-
-init : ( Model, Cmd msg )
+init : ( Model, Cmd Msg )
 init =
-    ( initialModel, Cmd.none )
+    let
+        ( membersInitModel, membersCmd ) =
+            Members.State.init
+
+        ( lineItemsInitModel, lineItemsCmd ) =
+            LineItems.State.init
+
+        initModel =
+            { members = membersInitModel
+            , lineItems = lineItemsInitModel
+            , totalBalance = 0
+            , selectedTab = MemberTab
+            }
+
+        cmds =
+            Cmd.batch
+                [ Cmd.map MemberMsg membersCmd
+                , Cmd.map LineItemMsg lineItemsCmd
+                ]
+    in
+        ( initModel, cmds )
 
 
 update : Types.Msg -> Model -> ( Model, Cmd Types.Msg )
@@ -46,22 +44,26 @@ update msg model =
 
         MemberMsg memberMsg ->
             let
-                ( newModel, cmd ) =
-                    Members.State.update memberMsg model
+                ( membersModel, memberCmd ) =
+                    Members.State.update memberMsg model.members
             in
-                ( withSummaries newModel, Cmd.map MemberMsg cmd )
+                ( withSummaries { model | members = membersModel }
+                , Cmd.map MemberMsg memberCmd
+                )
 
         LineItemMsg lineItemMsg ->
             let
-                ( newModel, cmd ) =
-                    LineItems.State.update lineItemMsg model
+                ( lineItemsModel, lineItemsCmd ) =
+                    LineItems.State.update lineItemMsg model.lineItems
             in
-                ( withSummaries newModel, Cmd.map LineItemMsg cmd )
+                ( withSummaries { model | lineItems = lineItemsModel }
+                , Cmd.map LineItemMsg lineItemsCmd
+                )
 
 
 withSummaries : Model -> Model
 withSummaries model =
-    { model | totalBalance = model.memberPaymentsTotal + model.lineItemTotal }
+    { model | totalBalance = model.members.memberPaymentsTotal + model.lineItems.lineItemTotal }
 
 
 subscriptions : Model -> Sub Types.Msg
