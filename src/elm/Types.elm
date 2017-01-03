@@ -10,10 +10,10 @@ type alias HasAmount a =
 
 
 type alias Model =
-    { members : Members.Types.Model
+    { app : App.Types.Model
+    , members : Members.Types.Model
     , lineItems : LineItems.Types.Model
     , totalBalance : Float
-    , selectedTab : App.Types.Tab
     }
 
 

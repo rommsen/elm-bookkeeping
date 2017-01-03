@@ -224,6 +224,13 @@ update msg model =
         FilterMembers memberFilter ->
             { model | memberFilter = memberFilter } ! []
 
+        Login value ->
+            let
+                _ =
+                    Debug.log "login" value
+            in
+                model ! []
+
 
 updateMemberCmd : Member -> Cmd msg
 updateMemberCmd =
@@ -326,6 +333,7 @@ subscriptions =
     Sub.batch
         [ memberAdded MemberAdded
         , memberUpdated MemberUpdated
+        , login Login
         ]
 
 
@@ -339,3 +347,6 @@ port memberAdded : (JD.Value -> msg) -> Sub msg
 
 
 port memberUpdated : (JD.Value -> msg) -> Sub msg
+
+
+port login : (JD.Value -> msg) -> Sub msg

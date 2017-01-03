@@ -1,7 +1,6 @@
 port module State exposing (init, subscriptions, update)
 
 import Types exposing (..)
-import App.Types exposing (Tab(..))
 import App.State
 import LineItems.State
 import Members.State
@@ -10,6 +9,9 @@ import Members.State
 init : ( Model, Cmd Msg )
 init =
     let
+        ( appInitModel, appCmd ) =
+            App.State.init
+
         ( membersInitModel, membersCmd ) =
             Members.State.init
 
@@ -17,10 +19,10 @@ init =
             LineItems.State.init
 
         initModel =
-            { members = membersInitModel
+            { app = appInitModel
+            , members = membersInitModel
             , lineItems = lineItemsInitModel
             , totalBalance = 0
-            , selectedTab = MemberTab
             }
 
         cmds =
@@ -37,10 +39,10 @@ update msg model =
     case msg of
         AppMsg appMsg ->
             let
-                ( newModel, cmd ) =
-                    App.State.update appMsg model
+                ( appModel, cmd ) =
+                    App.State.update appMsg model.app
             in
-                ( newModel, Cmd.map AppMsg cmd )
+                ( { model | app = appModel }, Cmd.map AppMsg cmd )
 
         MemberMsg memberMsg ->
             let

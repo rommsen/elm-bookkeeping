@@ -90,6 +90,7 @@ type Msg
     | DeleteMonthFromMember Month Member
     | ChangeMemberPane MemberPane
     | FilterMembers MemberFilter
+    | Login JD.Value
 
 
 emptyMemberNameForm : MemberNameForm

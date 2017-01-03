@@ -1,6 +1,11 @@
 module App.Types exposing (..)
 
 
+type alias Model =
+    { selectedTab : Tab
+    }
+
+
 type Tab
     = MemberTab
     | LineItemTab
@@ -8,3 +13,7 @@ type Tab
 
 type Msg
     = SelectTab Tab
+
+
+
+-- | Login

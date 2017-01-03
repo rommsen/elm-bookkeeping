@@ -1,6 +1,6 @@
 module App.View exposing (viewHeader)
 
-import App.Types exposing (..)
+import App.Types exposing (Msg(..), Tab(..))
 import Types exposing (Model)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -57,7 +57,7 @@ viewHeader model =
                 [ nav [ class "tabs is-boxed is-medium" ]
                     [ ul []
                         [ li
-                            [ classList [ ( "is-active", model.selectedTab == MemberTab ) ]
+                            [ classList [ ( "is-active", model.app.selectedTab == MemberTab ) ]
                             , onClick <| SelectTab MemberTab
                             ]
                             [ a []
@@ -66,7 +66,7 @@ viewHeader model =
                                 ]
                             ]
                         , li
-                            [ classList [ ( "is-active", model.selectedTab == LineItemTab ) ]
+                            [ classList [ ( "is-active", model.app.selectedTab == LineItemTab ) ]
                             , onClick <| SelectTab LineItemTab
                             ]
                             [ a []

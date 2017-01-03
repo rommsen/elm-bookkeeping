@@ -18,7 +18,7 @@ view model =
 
 viewBody : Model -> Html Msg
 viewBody model =
-    case model.selectedTab of
+    case model.app.selectedTab of
         MemberTab ->
             Html.map MemberMsg (Members.View.view model.members)
 
