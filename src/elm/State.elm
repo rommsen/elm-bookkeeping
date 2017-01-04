@@ -27,7 +27,8 @@ init =
 
         cmds =
             Cmd.batch
-                [ Cmd.map MemberMsg membersCmd
+                [ Cmd.map AppMsg appCmd
+                , Cmd.map MemberMsg membersCmd
                 , Cmd.map LineItemMsg lineItemsCmd
                 ]
     in
@@ -71,6 +72,7 @@ withSummaries model =
 subscriptions : Model -> Sub Types.Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map MemberMsg Members.State.subscriptions
+        [ Sub.map AppMsg App.State.subscriptions
+        , Sub.map MemberMsg Members.State.subscriptions
         , Sub.map LineItemMsg LineItems.State.subscriptions
         ]

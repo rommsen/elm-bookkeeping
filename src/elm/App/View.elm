@@ -1,13 +1,15 @@
-module App.View exposing (viewHeader)
+module App.View exposing (viewHeader, viewLogin)
 
-import App.Types exposing (Msg(..), Tab(..))
-import Types exposing (Model)
+import App.Types exposing (..)
+import Types
+import FormElements exposing (wrapFormElement)
+import Form.Validation exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
 
-viewHeader : Model -> Html Msg
+viewHeader : Types.Model -> Html Msg
 viewHeader model =
     section [ class "hero is-info" ]
         [ div [ class "hero-head" ]
@@ -15,6 +17,23 @@ viewHeader model =
                 [ div [ class "nav" ]
                     [ div [ class "nav-left" ]
                         [ span [ class "nav-item is-brand" ] [ text "Bookkeeping" ] ]
+                    , div
+                        [ class "nav-right nav-menu" ]
+                        [ span
+                            [ class "nav-item" ]
+                            [ a
+                                [ class "button is-primary is-inverted"
+                                , onClick Logout
+                                ]
+                                [ span
+                                    [ class "icon" ]
+                                    [ i [ class "fa fa-sign-out" ] [] ]
+                                , span
+                                    []
+                                    [ text "Logout" ]
+                                ]
+                            ]
+                        ]
                     ]
                 ]
             ]
@@ -79,3 +98,72 @@ viewHeader model =
                 ]
             ]
         ]
+
+
+viewLogin : Model -> Html Msg
+viewLogin model =
+    section [ class "section" ]
+        [ div [ class "container" ]
+            [ div [ class "tile is-ancestor" ]
+                [ div
+                    [ class "tile is-parent" ]
+                    [ div [ class "tile is-child box" ]
+                        [ h1 [ class "title" ] [ text "Login" ]
+                        , loginForm model.loginForm
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+loginForm : LoginForm -> Html Msg
+loginForm form =
+    let
+        emailError =
+            findError "email" form.errors
+
+        passwordError =
+            findError "password" form.errors
+
+        emailInput =
+            wrapFormElement "Email" emailError <|
+                input
+                    [ type_ "text"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", emailError /= Nothing )
+                        ]
+                    , onInput InputEmail
+                    , placeholder "Email"
+                    , value form.email
+                    ]
+                    []
+
+        passwordInput =
+            wrapFormElement "password" passwordError <|
+                input
+                    [ type_ "text"
+                    , classList
+                        [ ( "input", True )
+                        , ( "is-danger", passwordError /= Nothing )
+                        ]
+                    , onInput InputPassword
+                    , placeholder "Password"
+                    , value form.password
+                    ]
+                    []
+
+        submitButton =
+            button
+                [ type_ "submit"
+                , class "button is-primary"
+                ]
+                [ text "Login" ]
+    in
+        Html.form [ onSubmit Login ]
+            [ emailInput
+            , passwordInput
+            , div [ class "control is-grouped" ]
+                [ submitButton ]
+            ]

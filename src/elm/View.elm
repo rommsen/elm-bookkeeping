@@ -10,10 +10,14 @@ import Html exposing (..)
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ Html.map AppMsg (App.View.viewHeader model)
-        , viewBody model
-        ]
+    if model.app.loggedIn then
+        div []
+            [ Html.map AppMsg (App.View.viewHeader model)
+            , viewBody model
+            ]
+    else
+        div []
+            [ Html.map AppMsg (App.View.viewLogin model.app) ]
 
 
 viewBody : Model -> Html Msg

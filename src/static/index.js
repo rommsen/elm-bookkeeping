@@ -2,11 +2,28 @@ import "babel-polyfill";
 import "./styles/bulma.css";
 import "font-awesome-webpack";
 
-// inject bundled Elm app into div#main
-const Elm = require('../elm/Main');
-const app = Elm.Main.embed(document.getElementById('main'));
 const fb = require('./appfb');
-console.log(fb)
+const Elm = require('../elm/Main');
+// inject bundled Elm app into div#main
+const app = Elm.Main.embed(document.getElementById('main'));
+
+
+
+fb.auth.onAuthStateChanged(function(user) {
+  app.ports.auth.send(!!user);
+});
+
+app.ports.login.subscribe(user => {
+  fb.auth.signInWithEmailAndPassword(user.email, user.password)
+  .catch(function() {
+    app.ports.loginFailed.send();
+  });
+});
+
+app.ports.logout.subscribe(user => {
+  fb.auth.signOut();
+});
+
 app.ports.addMember.subscribe(member => {
   fb.addMember(member).then(function (response) {
     }

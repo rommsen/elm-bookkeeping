@@ -333,7 +333,6 @@ subscriptions =
     Sub.batch
         [ memberAdded MemberAdded
         , memberUpdated MemberUpdated
-        , login Login
         ]
 
 
@@ -347,6 +346,3 @@ port memberAdded : (JD.Value -> msg) -> Sub msg
 
 
 port memberUpdated : (JD.Value -> msg) -> Sub msg
-
-
-port login : (JD.Value -> msg) -> Sub msg

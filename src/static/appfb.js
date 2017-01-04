@@ -61,5 +61,6 @@ module.exports = {
   addLineItem: addLineItem,
   updateLineItem: updateLineItem,
   deleteLineItem: deleteLineItem,
-  lineItemlistener:lineItemlistener
+  lineItemlistener:lineItemlistener,
+  auth: app.auth()
   };
