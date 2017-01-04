@@ -66,7 +66,10 @@ update msg model =
 
 withSummaries : Model -> Model
 withSummaries model =
-    { model | totalBalance = model.members.memberPaymentsTotal + model.lineItems.lineItemTotal }
+    { model
+        | totalBalance =
+            model.members.memberPaymentsTotal + model.lineItems.lineItemTotal
+    }
 
 
 subscriptions : Model -> Sub Types.Msg

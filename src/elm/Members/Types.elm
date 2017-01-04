@@ -77,6 +77,7 @@ type Msg
     = SaveMemberName
     | MemberAdded JD.Value
     | MemberUpdated JD.Value
+    | MembersRetrieved (List JD.Value)
     | InputMemberName String
     | ToggleMemberIsActive Member
     | InputMemberPaymentAmount String

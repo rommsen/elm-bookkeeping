@@ -62,6 +62,21 @@ update msg model =
                     Nothing ->
                         { model | memberNameForm = form } ! []
 
+        MembersRetrieved values ->
+            let
+                members =
+                    values
+                        |> List.map (JD.decodeValue memberDecoder)
+                        |> List.filterMap Result.toMaybe
+            in
+                withSummaries
+                    { model
+                        | members = members
+                        , memberPane = MemberPaneShowNone
+                        , member = Nothing
+                    }
+                    ! []
+
         MemberAdded value ->
             case JD.decodeValue memberDecoder value of
                 Ok newMember ->
@@ -333,6 +348,7 @@ subscriptions =
     Sub.batch
         [ memberAdded MemberAdded
         , memberUpdated MemberUpdated
+        , membersRetrieved MembersRetrieved
         ]
 
 
@@ -343,6 +359,9 @@ port updateMember : JD.Value -> Cmd msg
 
 
 port memberAdded : (JD.Value -> msg) -> Sub msg
+
+
+port membersRetrieved : (List JD.Value -> msg) -> Sub msg
 
 
 port memberUpdated : (JD.Value -> msg) -> Sub msg

@@ -50,6 +50,19 @@ update msg model =
                 }
                     ! []
 
+        LineItemsRetrieved values ->
+            let
+                lineItems =
+                    values
+                        |> List.map (JD.decodeValue lineItemDecoder)
+                        |> List.filterMap Result.toMaybe
+            in
+                withSummaries
+                    { model
+                        | lineItems = lineItems
+                    }
+                    ! []
+
         LineItemAdded value ->
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
@@ -169,6 +182,7 @@ subscriptions =
         [ lineItemAdded LineItemAdded
         , lineItemUpdated LineItemUpdated
         , lineItemDeleted LineItemDeleted
+        , lineItemsRetrieved LineItemsRetrieved
         ]
 
 
@@ -182,6 +196,9 @@ port deleteLineItem : JD.Value -> Cmd msg
 
 
 port lineItemAdded : (JD.Value -> msg) -> Sub msg
+
+
+port lineItemsRetrieved : (List JD.Value -> msg) -> Sub msg
 
 
 port lineItemUpdated : (JD.Value -> msg) -> Sub msg

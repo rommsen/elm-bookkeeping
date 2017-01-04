@@ -35,6 +35,7 @@ type Msg
     | LineItemAdded JD.Value
     | LineItemUpdated JD.Value
     | LineItemDeleted JD.Value
+    | LineItemsRetrieved (List JD.Value)
     | DeleteLineItem LineItem
 
 
