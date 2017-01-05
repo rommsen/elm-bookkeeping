@@ -13,52 +13,42 @@ const database = app.database();
 const MEMBER_REFPATH = "members";
 const LINEITEM_REFPATH = "line_items";
 
-function addMember(member) {
-    return database
-        .ref(MEMBER_REFPATH)
-        .push(member);
+export const auth = app.auth();
+
+export const member = {
+    add: member => {
+        database
+            .ref(MEMBER_REFPATH)
+            .push(member);
+    },
+
+    update: member => {
+        database
+            .ref(MEMBER_REFPATH + "/" + member.id)
+            .set(member);
+    },
+
+    ref: database.ref(MEMBER_REFPATH)
 }
 
-function updateMember(member) {
-    return database
-        .ref(MEMBER_REFPATH + "/" + member.id)
-        .set(member);
-}
+export const lineItem = {
+    add: lineItem => {
+        database
+            .ref(LINEITEM_REFPATH)
+            .push(lineItem);
+    },
 
-function memberListener() {
-    return database.ref(MEMBER_REFPATH);
-}
+    update: lineItem => {
+        database
+            .ref(LINEITEM_REFPATH + "/" + lineItem.id)
+            .set(lineItem);
+    },
 
-function addLineItem(lineItem) {
-    return database
-        .ref(LINEITEM_REFPATH)
-        .push(lineItem);
-}
+    delete: lineItem => {
+        database
+            .ref(LINEITEM_REFPATH + "/" + lineItem.id)
+            .remove();
+    },
 
-function updateLineItem(lineItem) {
-    return database
-        .ref(LINEITEM_REFPATH + "/" + lineItem.id)
-        .set(lineItem);
+    ref: database.ref(LINEITEM_REFPATH)
 }
-
-function deleteLineItem(lineItem) {
-    return database
-        .ref(LINEITEM_REFPATH + "/" + lineItem.id)
-        .remove();
-}
-
-function lineItemlistener() {
-    return database.ref(LINEITEM_REFPATH);
-}
-
-module.exports = {
-    addMember: addMember,
-    updateMember: updateMember,
-    memberListener: memberListener,
-    addLineItem: addLineItem,
-    updateLineItem: updateLineItem,
-    deleteLineItem: deleteLineItem,
-    lineItemlistener: lineItemlistener,
-    auth: app.auth(),
-    database: database
-};
