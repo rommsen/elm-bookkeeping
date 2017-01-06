@@ -15,15 +15,15 @@ const LINEITEM_REFPATH = "line_items";
 
 export const auth = app.auth();
 
-export const member = {
+export const members = {
     add: member => {
-        database
+        return database
             .ref(MEMBER_REFPATH)
             .push(member);
     },
 
     update: member => {
-        database
+        return database
             .ref(MEMBER_REFPATH + "/" + member.id)
             .set(member);
     },
@@ -31,15 +31,15 @@ export const member = {
     ref: database.ref(MEMBER_REFPATH)
 }
 
-export const lineItem = {
+export const lineItems = {
     add: lineItem => {
-        database
+        return database
             .ref(LINEITEM_REFPATH)
             .push(lineItem);
     },
 
     update: lineItem => {
-        database
+        return database
             .ref(LINEITEM_REFPATH + "/" + lineItem.id)
             .set(lineItem);
     },
