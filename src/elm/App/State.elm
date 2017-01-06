@@ -59,6 +59,16 @@ update msg model =
         Auth loggedIn ->
             { model | loggedIn = loggedIn, loginForm = emptyLoginForm } ! []
 
+        LoginFailed value ->
+            let
+                form =
+                    model.loginForm
+
+                loginForm =
+                    { form | errors = [ Error "email" "Login failed with given credentials" ] }
+            in
+                { model | loginForm = loginForm } ! []
+
 
 validateLoginForm : LoginForm -> List Error
 validateLoginForm form =
@@ -75,7 +85,9 @@ validateLoginForm form =
 subscriptions : Sub Msg
 subscriptions =
     Sub.batch
-        [ auth Auth ]
+        [ auth Auth
+        , loginFailed LoginFailed
+        ]
 
 
 port login : User -> Cmd msg
@@ -85,3 +97,6 @@ port logout : String -> Cmd msg
 
 
 port auth : (Bool -> msg) -> Sub msg
+
+
+port loginFailed : (String -> msg) -> Sub msg

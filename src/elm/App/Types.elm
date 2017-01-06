@@ -26,6 +26,7 @@ type Msg
     | InputEmail String
     | InputPassword String
     | Login
+    | LoginFailed String
     | Logout
     | Auth Bool
 

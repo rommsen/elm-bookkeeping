@@ -18,19 +18,16 @@ viewHeader model =
                     [ div [ class "nav-left" ]
                         [ span [ class "nav-item is-brand" ] [ text "Bookkeeping" ] ]
                     , div
-                        [ class "nav-right nav-menu" ]
+                        [ class "nav-center" ]
                         [ span
                             [ class "nav-item" ]
                             [ a
-                                [ class "button is-primary is-inverted"
+                                [ class "button is-info"
                                 , onClick Logout
                                 ]
                                 [ span
                                     [ class "icon" ]
                                     [ i [ class "fa fa-sign-out" ] [] ]
-                                , span
-                                    []
-                                    [ text "Logout" ]
                                 ]
                             ]
                         ]

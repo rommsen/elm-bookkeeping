@@ -29,8 +29,7 @@ app.ports.login.subscribe(user => {
             });
         })
         .catch(function() {
-            console.log('login failed', arguments);
-            app.ports.loginFailed.send();
+            app.ports.loginFailed.send("");
         });
 });
 
