@@ -56,6 +56,7 @@ update msg model =
                     values
                         |> List.map (JD.decodeValue lineItemDecoder)
                         |> List.filterMap Result.toMaybe
+                        |> List.sortBy .name
             in
                 withSummaries
                     { model
@@ -66,12 +67,16 @@ update msg model =
         LineItemAdded value ->
             case JD.decodeValue lineItemDecoder value of
                 Ok lineItem ->
-                    withSummaries
-                        { model
-                            | lineItems = lineItem :: model.lineItems
-                            , lineItemForm = emptyLineItemForm
-                        }
-                        ! []
+                    let
+                        newLineItems =
+                            List.sortBy .name (lineItem :: model.lineItems)
+                    in
+                        withSummaries
+                            { model
+                                | lineItems = newLineItems
+                                , lineItemForm = emptyLineItemForm
+                            }
+                            ! []
 
                 Err err ->
                     let

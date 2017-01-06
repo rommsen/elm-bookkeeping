@@ -68,6 +68,7 @@ update msg model =
                     values
                         |> List.map (JD.decodeValue memberDecoder)
                         |> List.filterMap Result.toMaybe
+                        |> List.sortBy .name
             in
                 withSummaries
                     { model
@@ -80,13 +81,17 @@ update msg model =
         MemberAdded value ->
             case JD.decodeValue memberDecoder value of
                 Ok newMember ->
-                    withSummaries
-                        { model
-                            | members = newMember :: model.members
-                            , memberPane = MemberPaneShowNone
-                            , member = Nothing
-                        }
-                        ! []
+                    let
+                        newMembers =
+                            List.sortBy .name (newMember :: model.members)
+                    in
+                        withSummaries
+                            { model
+                                | members = newMembers
+                                , memberPane = MemberPaneShowNone
+                                , member = Nothing
+                            }
+                            ! []
 
                 Err err ->
                     let
