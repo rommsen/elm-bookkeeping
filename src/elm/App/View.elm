@@ -143,7 +143,7 @@ loginForm form =
         passwordInput =
             wrapFormElement "password" passwordError <|
                 input
-                    [ type_ "text"
+                    [ type_ "password"
                     , classList
                         [ ( "input", True )
                         , ( "is-danger", passwordError /= Nothing )
