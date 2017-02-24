@@ -38,6 +38,7 @@ I think most of it is pretty self-explanatory but here are some Details:
 
 
 ## Getting started
+In order to try it yourself you need to create an own Firebase Database and change https://github.com/rommsen/elm-bookkeeping/blob/master/src/static/appfb.js#L4 accordingly
 
 ### Installation
 You need to have [Elm](http://elm-lang.org/) 0.18 installed on your machine.
