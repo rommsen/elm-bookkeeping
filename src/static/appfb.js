@@ -45,7 +45,7 @@ export const lineItems = {
     },
 
     delete: lineItem => {
-        database
+        return database
             .ref(LINEITEM_REFPATH + "/" + lineItem.id)
             .remove();
     },
